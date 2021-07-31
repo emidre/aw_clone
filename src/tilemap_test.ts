@@ -1,11 +1,12 @@
 import { TileEncoding, TileSetEncoding, tileSetEncodings } from "./encoding/object_indices"
 import { gameHeight, gameWidth } from "./game"
 import { GameObject } from "./models/game_object"
-import { TerrainObject, _TerrainObject } from "./models/terrain_object"
+import { UnitObject } from "./models/player_objects/unit_objects"
+import { Infantry } from "./models/player_objects/unit_objects/infantry"
+import { TerrainObject } from "./models/terrain_object"
 import Mountain from "./models/terrain_objects/mountain"
 import Plains from "./models/terrain_objects/plains"
 import Woods from "./models/terrain_objects/woods"
-import { UnitObject } from "./models/unit_object"
 
 class Letter {
     letter: string
@@ -53,7 +54,6 @@ class Commands {
 }
 
 const listOfCommands = Object.keys(Commands)
-console.log(listOfCommands)
 
 export default class TileMapTest extends Phaser.Scene {
     map: Phaser.Tilemaps.Tilemap
@@ -65,7 +65,7 @@ export default class TileMapTest extends Phaser.Scene {
     posText: Phaser.GameObjects.Text
     lastSelectedTile: Phaser.Tilemaps.Tile
 
-    terrainData: Array<GameObject>
+    terrainData: Array<typeof GameObject>
 
     worldScale = 1
     maxWorldScale = 2
@@ -86,8 +86,8 @@ export default class TileMapTest extends Phaser.Scene {
 
     consolePrefix = "command: "
     keyEnter: Phaser.Input.Keyboard.Key
-    currentBrush: GameObject = Plains
-    currentTileClass: GameObject
+    currentBrush: typeof GameObject = Plains
+    currentTileClass: typeof GameObject
 
     constructor() {
         super('TileMapTest')
@@ -176,7 +176,7 @@ export default class TileMapTest extends Phaser.Scene {
         const newCurrentTile: Phaser.Tilemaps.Tile = this.terrainLayer.getTileAtWorldXY(mousePositionInMapCameraX, mousePositionInMapCameraY, false, this.mapCamera)
         this.currentTileClass = newCurrentTile ? this.terrainData[this.convertTo1DCoords(newCurrentTile)] : null
 
-        this.statusText.setText(`Terrain: ${this.currentTileClass ? this.currentTileClass.objectName : "null"}`)
+        this.statusText.setText(`Terrain: ${this.currentTileClass ? this.currentTileClass.name : "null"}`)
     }
 
     // Update Helpers
@@ -257,15 +257,15 @@ export default class TileMapTest extends Phaser.Scene {
 
     // Private functions
     // Top-level function for adding anything
-    placeObject = (objectClass: GameObject, currentTile: Phaser.Tilemaps.Tile) => {
+    placeObject = (objectClass: typeof GameObject, currentTile: Phaser.Tilemaps.Tile) => {
         const tileSetEncoding: TileSetEncoding = tileSetEncodings[this.tileSet] // maybe make property
-        const tileEncoding: TileEncoding = tileSetEncoding[(objectClass as any).objectName]
+        const tileEncoding: TileEncoding = tileSetEncoding[objectClass.name.toLowerCase()]
 
         const sizeX = tileEncoding.sizeX ?? 1
         const sizeY = tileEncoding.sizeY ?? 1
         const decorations = tileEncoding.decorations ?? tileEncoding.indices.map((_) => false)
 
-        if (tileSetEncoding[(this.terrainData[this.convertTo1DCoords(currentTile)] as any).objectName].sizeY == 2) {
+        if (tileSetEncoding[this.terrainData[this.convertTo1DCoords(currentTile)].name.toLowerCase()].sizeY == 2) {
             this.map.removeTileAt(currentTile.x, currentTile.y - 1, true, false, this.decorationLayer)
         }
         this.terrainData[this.convertTo1DCoords(currentTile)] = objectClass
@@ -275,7 +275,7 @@ export default class TileMapTest extends Phaser.Scene {
             const matrixPositionX = Math.abs(countingIndex % sizeX - (sizeX - 1))
             const matrixPositionY = Math.abs(Math.floor(countingIndex / sizeX) - (sizeY - 1))
 
-            const layer = objectClass.prototype instanceof _TerrainObject ? (decorations[countingIndex] == true ? this.decorationLayer : this.terrainLayer) : null // null for now
+            const layer = objectClass.prototype instanceof TerrainObject ? (decorations[countingIndex] == true ? this.decorationLayer : this.terrainLayer) : null // null for now
             this.map.putTileAt(tileIndex, currentTile.x - matrixPositionX, currentTile.y - matrixPositionY, false, layer)
         })
     }
