@@ -1,0 +1,3 @@
+- FE:3H style displaying the enemy units' radius of attacks
+- Show Counterattack damage percentage
+- Display health as 0-100 instead of 0-10

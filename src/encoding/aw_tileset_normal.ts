@@ -9,7 +9,7 @@ export const aw_tileset_normal_encoding: TileSetEncoding = {
         indices: [22, 48],
         decorations: [true, false]
     },
-    "mountains": {
+    "mountain": {
         sizeY: 2,
         indices: [24, 50],
         decorations: [true, false]
