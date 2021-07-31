@@ -5,5 +5,6 @@ export default class Plains extends TerrainObject {
         super()
 
         this.objectName = "Plains"
+        this.movementCostInfantry = 1
     }
 }

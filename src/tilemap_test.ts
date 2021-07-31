@@ -1,6 +1,7 @@
 import { TileEncoding, TileSetEncoding, tileSetEncodings } from "./encoding/object_indices"
 import { gameHeight, gameWidth } from "./game"
 import { GameObject } from "./models/game_object"
+import { PlayerObject } from "./models/player_object"
 import { UnitObject } from "./models/player_objects/unit_objects"
 import { Infantry } from "./models/player_objects/unit_objects/infantry"
 import { TerrainObject } from "./models/terrain_object"
@@ -46,11 +47,37 @@ const letters: Array<Letter> = [
     new Letter("Y"),
     new Letter("Z"),
 ]
+class _Number {
+    number: string
+    name: string
+    keyCode: number
+
+    constructor(_number: string, _name) {
+        this.number = _number
+        this.name = _name
+        this.keyCode = Phaser.Input.Keyboard.KeyCodes[_name]
+    }
+}
+
+const numbers: Array<_Number> = [
+    new _Number("0", "ZERO"),
+    new _Number("1", "ONE"),
+    new _Number("2", "TWO"),
+    new _Number("3", "THREE"),
+    new _Number("4", "FOUR"),
+    new _Number("5", "FIVE"),
+    new _Number("6", "SIX"),
+    new _Number("7", "SEVEN"),
+    new _Number("8", "EIGHT"),
+    new _Number("9", "NINE"),
+]
 
 class Commands {
     static plains = "plains"
     static woods = "woods"
     static mountain = "mountain"
+    static selectedplayer = "selectedplayer"
+    static infantry = "infantry"
 }
 
 const listOfCommands = Object.keys(Commands)
@@ -58,7 +85,7 @@ const listOfCommands = Object.keys(Commands)
 export default class TileMapTest extends Phaser.Scene {
     map: Phaser.Tilemaps.Tilemap
     terrainLayer: Phaser.Tilemaps.TilemapLayer
-    tiles: Phaser.Tilemaps.Tileset
+    terrainTiles: Phaser.Tilemaps.Tileset
     controls: Phaser.Cameras.Controls.SmoothedKeyControl
     marker: Phaser.GameObjects.Image
     cursors: Phaser.Types.Input.Keyboard.CursorKeys
@@ -69,7 +96,6 @@ export default class TileMapTest extends Phaser.Scene {
 
     worldScale = 1
     maxWorldScale = 2
-    tileSet = "aw_tileset_normal"
     decorationLayer: Phaser.Tilemaps.TilemapLayer
     mapCamera: Phaser.Cameras.Scene2D.Camera
     interfaceCamera: Phaser.Cameras.Scene2D.Camera
@@ -88,13 +114,18 @@ export default class TileMapTest extends Phaser.Scene {
     keyEnter: Phaser.Input.Keyboard.Key
     currentBrush: typeof GameObject = Plains
     currentTileClass: typeof GameObject
+    selectedPlayer = 0
+    unitLayer: Phaser.Tilemaps.TilemapLayer
+    unitTiles: Phaser.Tilemaps.Tileset
+    clicked: boolean = false
 
     constructor() {
         super('TileMapTest')
     }
 
     preload = () => {
-        this.load.image('tiles', '../assets/tilemaps/aw_tilemap_normal.png')
+        this.load.image('terrainTiles', '../assets/tilemaps/aw_tilemap_normal.png')
+        this.load.image('unitTiles', '../assets/tilemaps/aw_tilemap_units_small.png')
         this.load.tilemapTiledJSON('map', '../assets/tilemaps/aw_tilemap_normal.json')
 
         this.load.image('cursor', '../assets/sprites/cursor.png')
@@ -102,7 +133,10 @@ export default class TileMapTest extends Phaser.Scene {
 
     create = () => {
         this.map = this.add.tilemap('map')
-        this.tiles = this.map.addTilesetImage('aw_tileset_normal', 'tiles')
+        this.terrainTiles = this.map.addTilesetImage('aw_tileset_normal', 'terrainTiles')
+        this.unitTiles = this.map.addTilesetImage('aw_tileset_units_small', 'unitTiles')
+        console.log(this.terrainTiles)
+        console.log(this.unitTiles)
 
         this.map.width = 20
         this.map.height = 20
@@ -127,12 +161,15 @@ export default class TileMapTest extends Phaser.Scene {
         this.mapCamera = this.cameras.add(this.margin, this.margin, gameHeight - (this.margin * 2), gameHeight - (this.margin * 2), true)
         this.mapCamera.setBounds(0, 0, this.map.width * 16 * this.worldScale, this.map.height * 16 * this.worldScale)
 
-        this.terrainLayer = this.map.createBlankLayer('terrainLayer', this.tiles)
+        this.terrainLayer = this.map.createBlankLayer('terrainLayer', this.terrainTiles)
         this.terrainLayer.setScale(this.worldScale)
         this.terrainLayer.fill(79)
 
-        this.decorationLayer = this.map.createBlankLayer('decorationLayer', this.tiles)
+        this.decorationLayer = this.map.createBlankLayer('decorationLayer', this.terrainTiles)
         this.decorationLayer.setScale(this.worldScale)
+
+        this.unitLayer = this.map.createBlankLayer('unitLayer', this.unitTiles)
+        this.unitLayer.setScale(this.worldScale)
 
         this.marker = this.add.image(0, 0, 'cursor')
         this.marker.setScale(this.worldScale)
@@ -160,6 +197,9 @@ export default class TileMapTest extends Phaser.Scene {
         this.keyEnter = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
         letters.forEach((letter) => {
             this.input.keyboard.addKey(letter.keyCode);
+        })
+        numbers.forEach((number) => {
+            this.input.keyboard.addKey(number.keyCode);
         })
     }
 
@@ -202,6 +242,7 @@ export default class TileMapTest extends Phaser.Scene {
     handleMouseInput = (currentTile: Phaser.Tilemaps.Tile) => {
         if (this.input.mousePointer.isDown) {
             if (currentTile) {
+                // TODO: This sends way too often when it should just once
                 this.placeObject(this.currentBrush, currentTile)
             }
         }
@@ -218,10 +259,19 @@ export default class TileMapTest extends Phaser.Scene {
                     let newText = this.consoleText.text.substring(this.consolePrefix.length) + letter.letter.toLowerCase()
 
                     const possibleCommands = listOfCommands.filter((command) => command.startsWith(newText))
-                    if (possibleCommands.length == 1) {
+                    if (possibleCommands.length == 1 && newText.length < possibleCommands[0].length) {
                         newText = possibleCommands[0]
                     }
 
+                    this.consoleText.setText(this.consolePrefix + newText)
+                }
+            }
+        })
+
+        numbers.forEach((number) => {
+            if (Phaser.Input.Keyboard.JustDown(this.input.keyboard.keys.find((x) => x ? x.keyCode == number.keyCode : false))) {
+                if (this.consoleActive) {
+                    let newText = this.consoleText.text.substring(this.consolePrefix.length) + number.number.toLowerCase()
                     this.consoleText.setText(this.consolePrefix + newText)
                 }
             }
@@ -258,26 +308,55 @@ export default class TileMapTest extends Phaser.Scene {
     // Private functions
     // Top-level function for adding anything
     placeObject = (objectClass: typeof GameObject, currentTile: Phaser.Tilemaps.Tile) => {
-        const tileSetEncoding: TileSetEncoding = tileSetEncodings[this.tileSet] // maybe make property
-        const tileEncoding: TileEncoding = tileSetEncoding[objectClass.name.toLowerCase()]
-
-        const sizeX = tileEncoding.sizeX ?? 1
-        const sizeY = tileEncoding.sizeY ?? 1
-        const decorations = tileEncoding.decorations ?? tileEncoding.indices.map((_) => false)
-
-        if (tileSetEncoding[this.terrainData[this.convertTo1DCoords(currentTile)].name.toLowerCase()].sizeY == 2) {
-            this.map.removeTileAt(currentTile.x, currentTile.y - 1, true, false, this.decorationLayer)
+        let tileSetName = ""
+        if (objectClass.prototype instanceof TerrainObject) {
+            tileSetName = "aw_tileset_normal"
+        } else if (objectClass.prototype instanceof UnitObject) {
+            tileSetName = "aw_tileset_units_small"
         }
-        this.terrainData[this.convertTo1DCoords(currentTile)] = objectClass
 
-        // Bottom right is assumed to be the origin point of the sprite
-        tileEncoding.indices.forEach((tileIndex, countingIndex) => {
-            const matrixPositionX = Math.abs(countingIndex % sizeX - (sizeX - 1))
-            const matrixPositionY = Math.abs(Math.floor(countingIndex / sizeX) - (sizeY - 1))
+        const tileSetEncoding: TileSetEncoding = tileSetEncodings[tileSetName]
 
-            const layer = objectClass.prototype instanceof TerrainObject ? (decorations[countingIndex] == true ? this.decorationLayer : this.terrainLayer) : null // null for now
-            this.map.putTileAt(tileIndex, currentTile.x - matrixPositionX, currentTile.y - matrixPositionY, false, layer)
-        })
+        if (objectClass.prototype instanceof TerrainObject) {
+            const tileEncoding: TileEncoding = tileSetEncoding.get(objectClass.name.toLowerCase())
+
+            const sizeX = tileEncoding.sizeX ?? 1
+            const sizeY = tileEncoding.sizeY ?? 1
+            const decorations = tileEncoding.decorations ?? tileEncoding.indices.map((_) => false)
+
+            if (tileSetEncoding.get(this.terrainData[this.convertTo1DCoords(currentTile)].name.toLowerCase()).sizeY == 2) {
+                this.map.removeTileAt(currentTile.x, currentTile.y - 1, true, false, this.decorationLayer)
+            }
+            this.terrainData[this.convertTo1DCoords(currentTile)] = objectClass
+
+            // Bottom right is assumed to be the origin point of the sprite
+            tileEncoding.indices.forEach((tileIndex, countingIndex) => {
+                const matrixPositionX = Math.abs(countingIndex % sizeX - (sizeX - 1))
+                const matrixPositionY = Math.abs(Math.floor(countingIndex / sizeX) - (sizeY - 1))
+
+                const layer = decorations[countingIndex] == true ? this.decorationLayer : this.terrainLayer
+                this.map.putTileAt(tileIndex, currentTile.x - matrixPositionX, currentTile.y - matrixPositionY, false, layer)
+            })
+        } else
+            if (objectClass.prototype instanceof UnitObject) {
+                let modifier = ""
+
+                if (objectClass.name.toLowerCase() == "infantry") {
+                    modifier = "_os" // for now
+                }
+
+                let color = ""
+                switch (this.selectedPlayer) {
+                    case 0: {
+                        color = "_orange"
+                        break
+                    }
+                }
+
+                const tileEncoding: TileEncoding = tileSetEncoding.get(objectClass.name.toLowerCase() + modifier + color + "_active")
+
+                this.map.putTileAt(tileEncoding.indices[0], currentTile.x, currentTile.y, false, this.unitLayer)
+            }
     }
 
     toggleConsole = () => {
@@ -302,6 +381,17 @@ export default class TileMapTest extends Phaser.Scene {
             }
             case Commands.mountain: {
                 this.currentBrush = Mountain;
+                break;
+            }
+            case Commands.selectedplayer: {
+                const playerNumber = Number.parseInt(command.split(" ")[1])
+                if ([0, 1, 2, 3, 4].includes(playerNumber)) {
+                    this.selectedPlayer = playerNumber;
+                }
+                break;
+            }
+            case Commands.infantry: {
+                this.currentBrush = Infantry;
                 break;
             }
         }
