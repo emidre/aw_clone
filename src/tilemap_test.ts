@@ -92,7 +92,7 @@ export default class TileMapTest extends Phaser.Scene {
     posText: Phaser.GameObjects.Text
     lastSelectedTile: Phaser.Tilemaps.Tile
 
-    terrainData: Array<typeof GameObject>
+    terrainData: Array<typeof TerrainObject>
 
     worldScale = 1
     maxWorldScale = 2
@@ -118,6 +118,7 @@ export default class TileMapTest extends Phaser.Scene {
     unitLayer: Phaser.Tilemaps.TilemapLayer
     unitTiles: Phaser.Tilemaps.Tileset
     clicked: boolean = false
+    unitData: Array<typeof UnitObject>
 
     constructor() {
         super('TileMapTest')
@@ -126,7 +127,8 @@ export default class TileMapTest extends Phaser.Scene {
     preload = () => {
         this.load.image('terrainTiles', '../assets/tilemaps/aw_tilemap_normal.png')
         this.load.image('unitTiles', '../assets/tilemaps/aw_tilemap_units_small.png')
-        this.load.tilemapTiledJSON('map', '../assets/tilemaps/aw_tilemap_normal.json')
+        //this.load.tilemapTiledJSON('map', '../assets/tilemaps/aw_tilemap_normal.json')
+        this.load.tilemapTiledJSON('map', '../assets/tilemaps/aw_map.json')
 
         this.load.image('cursor', '../assets/sprites/cursor.png')
     }
@@ -135,14 +137,15 @@ export default class TileMapTest extends Phaser.Scene {
         this.map = this.add.tilemap('map')
         this.terrainTiles = this.map.addTilesetImage('aw_tileset_normal', 'terrainTiles')
         this.unitTiles = this.map.addTilesetImage('aw_tileset_units_small', 'unitTiles')
-        console.log(this.terrainTiles)
-        console.log(this.unitTiles)
 
         this.map.width = 20
         this.map.height = 20
 
         this.terrainData = new Array(this.map.width * this.map.height)
         this.terrainData.fill(Plains)
+
+        this.unitData = new Array(this.map.width * this.map.height)
+        this.unitData.fill(null)
 
         this.worldScale = (gameHeight - (this.margin * 2)) / (16 * this.map.height)
         if (this.worldScale < this.maxWorldScale) {
@@ -154,22 +157,25 @@ export default class TileMapTest extends Phaser.Scene {
         this.interfaceCamera = this.cameras.main
         this.interfaceCamera.setBackgroundColor('rgb(150,150,150)')
 
-        this.posText = this.add.text(-this.tileMapOffsetX + 3, 3, 'pos: -1, -1', { fontSize: '8px', fontFamily: "Lucida Console", color: '#000' })
-        this.consoleText = this.add.text(-this.tileMapOffsetX + 75, 3, this.consolePrefix, { fontSize: '8px', fontFamily: "Lucida Console", color: '#F00' })
-        this.consoleText.setVisible(false)
-
         this.mapCamera = this.cameras.add(this.margin, this.margin, gameHeight - (this.margin * 2), gameHeight - (this.margin * 2), true)
         this.mapCamera.setBounds(0, 0, this.map.width * 16 * this.worldScale, this.map.height * 16 * this.worldScale)
 
+        this.posText = this.add.text(-this.tileMapOffsetX + 3, 3, 'pos: -1, -1', { fontSize: '8px', fontFamily: "Lucida Console", color: '#000' })
+        this.consoleText = this.add.text(-this.tileMapOffsetX + 75, 3, this.consolePrefix, { fontSize: '8px', fontFamily: "Lucida Console", color: '#F00' })
+        this.consoleText.setVisible(false)
+        this.statusText = this.add.text(-this.tileMapOffsetX - 54 /* this is the magic number, don't question it */ + (gameHeight - this.margin * 2), 3, '', { fontSize: '12px', fontFamily: "Lucida Console", color: '#000' })
+
         this.terrainLayer = this.map.createBlankLayer('terrainLayer', this.terrainTiles)
         this.terrainLayer.setScale(this.worldScale)
-        this.terrainLayer.fill(79)
+        this.terrainLayer.fill(this.getOffsetIndex(78, this.terrainTiles))
 
         this.decorationLayer = this.map.createBlankLayer('decorationLayer', this.terrainTiles)
         this.decorationLayer.setScale(this.worldScale)
+        this.decorationLayer.fill(this.getOffsetIndex(1052, this.terrainTiles))
 
         this.unitLayer = this.map.createBlankLayer('unitLayer', this.unitTiles)
         this.unitLayer.setScale(this.worldScale)
+        this.unitLayer.fill(this.getOffsetIndex(6, this.unitTiles))
 
         this.marker = this.add.image(0, 0, 'cursor')
         this.marker.setScale(this.worldScale)
@@ -189,7 +195,7 @@ export default class TileMapTest extends Phaser.Scene {
 
         this.controls = new Phaser.Cameras.Controls.SmoothedKeyControl(controlConfig);
 
-        this.statusText = this.add.text(-gameWidth + (gameHeight - (this.margin * 2)), 3, '', { fontSize: '12px', fontFamily: "Lucida Console", color: '#000' })
+
 
         this.keyF2 = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.F2);
         this.keySpace = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
@@ -206,17 +212,19 @@ export default class TileMapTest extends Phaser.Scene {
     update = (time, delta) => {
         const mousePositionInMapCameraX = this.input.activePointer.worldX + this.tileMapOffsetX + this.mapCamera.scrollX - this.margin
         const mousePositionInMapCameraY = this.input.activePointer.worldY + this.mapCamera.scrollY - this.margin
-        const currentTile: Phaser.Tilemaps.Tile = this.terrainLayer.getTileAtWorldXY(mousePositionInMapCameraX, mousePositionInMapCameraY, false, this.mapCamera)
+        const currentTile: Phaser.Tilemaps.Tile = this.map.getTileAtWorldXY(mousePositionInMapCameraX, mousePositionInMapCameraY, false, this.mapCamera)
 
-        this.handleSelection(currentTile)
         this.handleMouseInput(currentTile)
         this.handleKeyboardInput()
         this.handleCamera(delta)
+        this.handleSelection(currentTile)
 
-        const newCurrentTile: Phaser.Tilemaps.Tile = this.terrainLayer.getTileAtWorldXY(mousePositionInMapCameraX, mousePositionInMapCameraY, false, this.mapCamera)
-        this.currentTileClass = newCurrentTile ? this.terrainData[this.convertTo1DCoords(newCurrentTile)] : null
-
-        this.statusText.setText(`Terrain: ${this.currentTileClass ? this.currentTileClass.name : "null"}`)
+        this.statusText.setText(
+            `
+            Terrain: ${currentTile ? this.terrainData[this.convertTileTo1DCoords(currentTile)]?.name : "OOB"}\n
+            Unit: ${currentTile ? this.unitData[this.convertTileTo1DCoords(currentTile)]?.name : "OOB"}\n
+            `
+        )
     }
 
     // Update Helpers
@@ -227,14 +235,12 @@ export default class TileMapTest extends Phaser.Scene {
                 this.posText.setText('pos: ' + currentTile.x + ", " + currentTile.y)
                 this.marker.setVisible(true)
                 this.marker.setPosition(currentTile.x * 16 * this.worldScale + 11 * this.worldScale, currentTile.y * 16 * this.worldScale + 11 * this.worldScale)
-                this.currentTileClass = this.terrainData[this.convertTo1DCoords(currentTile)]
             }
         } else {
             if (this.lastSelectedTile) {
                 this.lastSelectedTile = null
                 this.posText.setText('pos: -1, -1')
                 this.marker.setVisible(false)
-                this.currentTileClass = null
             }
         }
     }
@@ -324,10 +330,10 @@ export default class TileMapTest extends Phaser.Scene {
             const sizeY = tileEncoding.sizeY ?? 1
             const decorations = tileEncoding.decorations ?? tileEncoding.indices.map((_) => false)
 
-            if (tileSetEncoding.get(this.terrainData[this.convertTo1DCoords(currentTile)].name.toLowerCase()).sizeY == 2) {
+            if (tileSetEncoding.get(this.terrainData[this.convertTileTo1DCoords(currentTile)].name.toLowerCase()).sizeY == 2) {
                 this.map.removeTileAt(currentTile.x, currentTile.y - 1, true, false, this.decorationLayer)
             }
-            this.terrainData[this.convertTo1DCoords(currentTile)] = objectClass
+            this.terrainData[this.convertTileTo1DCoords(currentTile)] = objectClass as any
 
             // Bottom right is assumed to be the origin point of the sprite
             tileEncoding.indices.forEach((tileIndex, countingIndex) => {
@@ -335,7 +341,7 @@ export default class TileMapTest extends Phaser.Scene {
                 const matrixPositionY = Math.abs(Math.floor(countingIndex / sizeX) - (sizeY - 1))
 
                 const layer = decorations[countingIndex] == true ? this.decorationLayer : this.terrainLayer
-                this.map.putTileAt(tileIndex, currentTile.x - matrixPositionX, currentTile.y - matrixPositionY, false, layer)
+                this.map.putTileAt(this.getOffsetIndex(tileIndex, this.terrainTiles), currentTile.x - matrixPositionX, currentTile.y - matrixPositionY, false, layer)
             })
         } else
             if (objectClass.prototype instanceof UnitObject) {
@@ -353,9 +359,11 @@ export default class TileMapTest extends Phaser.Scene {
                     }
                 }
 
+                this.unitData[this.convertTileTo1DCoords(currentTile)] = objectClass as any
+
                 const tileEncoding: TileEncoding = tileSetEncoding.get(objectClass.name.toLowerCase() + modifier + color + "_active")
 
-                this.map.putTileAt(tileEncoding.indices[0], currentTile.x, currentTile.y, false, this.unitLayer)
+                this.map.putTileAt(this.getOffsetIndex(tileEncoding.indices[0], this.unitTiles), currentTile.x, currentTile.y, false, this.unitLayer)
             }
     }
 
@@ -397,7 +405,11 @@ export default class TileMapTest extends Phaser.Scene {
         }
     }
 
-    convertTo1DCoords = (tile: Phaser.Tilemaps.Tile) => {
+    convertTileTo1DCoords = (tile: Phaser.Tilemaps.Tile) => {
         return tile.y * this.map.width + tile.x
+    }
+
+    getOffsetIndex = (index: number, tileset: Phaser.Tilemaps.Tileset) => {
+        return tileset.firstgid + index
     }
 }

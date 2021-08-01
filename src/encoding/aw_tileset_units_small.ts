@@ -8,7 +8,7 @@ import { TileEncoding, TileSetEncoding } from "./object_indices";
 // recon (361), antiair, fighter, battleship, infantry_os, mech_os (376), ...
 // ...
 
-const firstUnit = 145
+const firstUnit = 144
 const activeSkip = 18
 const inactiveSkip = 18
 const factionSkip = 216
@@ -55,5 +55,3 @@ orderActive.forEach((x, x_index) => {
         })
     })
 })
-
-console.log(aw_tilemap_units_small_encoding)

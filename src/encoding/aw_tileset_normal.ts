@@ -4,16 +4,16 @@ export let aw_tileset_normal_encoding: TileSetEncoding = new Map<string, TileEnc
 
 const obj = {
     "plains": {
-        indices: [79]
+        indices: [78]
     },
     "woods": {
         sizeY: 2,
-        indices: [22, 48],
+        indices: [21, 47],
         decorations: [true, false]
     },
     "mountain": {
         sizeY: 2,
-        indices: [24, 50],
+        indices: [23, 49],
         decorations: [true, false]
     }
 }

@@ -1,0 +1,2 @@
+All tilemaps were downloaded from https://www.spriters-resource.com and ripped by the user Amyd (https://www.spriters-resource.com/submitter/Amyd/). Thank you very much!
+I had to reorder the tiles to load them into Tiled, also the unit tiles were only colored for Orange Star so I had to palette swap them to get the other factions.
