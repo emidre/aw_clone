@@ -48,7 +48,7 @@ orderActive.forEach((x, x_index) => {
 
             let additionalFrames = []
             orderAnimation.forEach((frame) => {
-                additionalFrames.push(indices[0] + frame)
+                additionalFrames.push([indices[0] + frame])
             })
 
             aw_tilemap_units_small_encoding.set(`${z}_${y}_${x}`, { indices: indices, additionalFrames: additionalFrames })

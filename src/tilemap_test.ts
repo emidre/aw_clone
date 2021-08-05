@@ -8,6 +8,8 @@ import { TerrainObject } from "./models/terrain_object"
 import Mountain from "./models/terrain_objects/mountain"
 import Plains from "./models/terrain_objects/plains"
 import Woods from "./models/terrain_objects/woods"
+import AnimatedTiles from 'phaser-animated-tiles/dist/AnimatedTiles.min.js';
+import { Recon } from "./models/player_objects/unit_objects/recon"
 
 class Letter {
     letter: string
@@ -78,6 +80,7 @@ class Commands {
     static mountain = "mountain"
     static selectedplayer = "selectedplayer"
     static infantry = "infantry"
+    static recon = "recon"
 }
 
 const listOfCommands = Object.keys(Commands)
@@ -91,6 +94,7 @@ export default class TileMapTest extends Phaser.Scene {
     cursors: Phaser.Types.Input.Keyboard.CursorKeys
     posText: Phaser.GameObjects.Text
     lastSelectedTile: Phaser.Tilemaps.Tile
+    lastCreatedTile: Phaser.Tilemaps.Tile
 
     terrainData: Array<typeof TerrainObject>
 
@@ -109,6 +113,10 @@ export default class TileMapTest extends Phaser.Scene {
     consoleActive: boolean = false
     keySpace: Phaser.Input.Keyboard.Key
     keyBackspace: Phaser.Input.Keyboard.Key
+    unitCurrentFrame: number = 0
+    unitNextFrame: number = 0
+    unitFrameRate: number = 1
+    unitFrameDuration: number = 333
 
     consolePrefix = "command: "
     keyEnter: Phaser.Input.Keyboard.Key
@@ -119,6 +127,15 @@ export default class TileMapTest extends Phaser.Scene {
     unitTiles: Phaser.Tilemaps.Tileset
     clicked: boolean = false
     unitData: Array<typeof UnitObject>
+    currentFrame: number
+    active: boolean = true
+    animatedTiles: Array<{
+        frames: Array<number>,
+        tiles: Array<Phaser.Tilemaps.Tile>,
+    }> = []
+    rate: number = 1
+    followTimeScale: boolean = true
+    debug: any
 
     constructor() {
         super('TileMapTest')
@@ -130,13 +147,15 @@ export default class TileMapTest extends Phaser.Scene {
         //this.load.tilemapTiledJSON('map', '../assets/tilemaps/aw_tilemap_normal.json')
         this.load.tilemapTiledJSON('map', '../assets/tilemaps/aw_map.json')
 
+        this.load.atlas("unitAtlas", "../assets/tilemaps/aw_tilemap_units_small.png", "../assets/tilemaps/aw_tilemap_normal.json")
+
         this.load.image('cursor', '../assets/sprites/cursor.png')
     }
 
     create = () => {
         this.map = this.add.tilemap('map')
         this.terrainTiles = this.map.addTilesetImage('aw_tileset_normal', 'terrainTiles')
-        this.unitTiles = this.map.addTilesetImage('aw_tileset_units_small', 'unitTiles')
+        this.unitTiles = this.map.addTilesetImage('aw_tileset_units_small', 'unitTiles');
 
         this.map.width = 20
         this.map.height = 20
@@ -169,13 +188,13 @@ export default class TileMapTest extends Phaser.Scene {
         this.terrainLayer.setScale(this.worldScale)
         this.terrainLayer.fill(this.getOffsetIndex(78, this.terrainTiles))
 
-        this.decorationLayer = this.map.createBlankLayer('decorationLayer', this.terrainTiles)
-        this.decorationLayer.setScale(this.worldScale)
-        this.decorationLayer.fill(this.getOffsetIndex(1052, this.terrainTiles))
-
         this.unitLayer = this.map.createBlankLayer('unitLayer', this.unitTiles)
         this.unitLayer.setScale(this.worldScale)
         this.unitLayer.fill(this.getOffsetIndex(6, this.unitTiles))
+
+        this.decorationLayer = this.map.createBlankLayer('decorationLayer', this.terrainTiles)
+        this.decorationLayer.setScale(this.worldScale)
+        this.decorationLayer.fill(this.getOffsetIndex(1052, this.terrainTiles))
 
         this.marker = this.add.image(0, 0, 'cursor')
         this.marker.setScale(this.worldScale)
@@ -212,11 +231,12 @@ export default class TileMapTest extends Phaser.Scene {
     update = (time, delta) => {
         const mousePositionInMapCameraX = this.input.activePointer.worldX + this.tileMapOffsetX + this.mapCamera.scrollX - this.margin
         const mousePositionInMapCameraY = this.input.activePointer.worldY + this.mapCamera.scrollY - this.margin
-        const currentTile: Phaser.Tilemaps.Tile = this.map.getTileAtWorldXY(mousePositionInMapCameraX, mousePositionInMapCameraY, false, this.mapCamera)
+        const currentTile: Phaser.Tilemaps.Tile = this.map.getTileAtWorldXY(mousePositionInMapCameraX, mousePositionInMapCameraY, false, this.mapCamera, this.terrainLayer)
 
         this.handleMouseInput(currentTile)
         this.handleKeyboardInput()
         this.handleCamera(delta)
+        this.handleAnimations(time, delta)
         this.handleSelection(currentTile)
 
         this.statusText.setText(
@@ -245,10 +265,41 @@ export default class TileMapTest extends Phaser.Scene {
         }
     }
 
+    handleAnimations = (time, delta) => {
+        if (!this.active) {
+            return;
+        }
+        // Elapsed time is the delta multiplied by the global rate and the scene timeScale if folowTimeScale is true
+        let globalElapsedTime = delta * this.rate * (this.followTimeScale ? this.time.timeScale : 1);
+        this.unitNextFrame -= globalElapsedTime * this.unitFrameRate;
+
+        if (this.unitNextFrame < 0) {
+            this.unitCurrentFrame = this.unitCurrentFrame + 1
+
+            if (this.unitCurrentFrame == 3) {
+                this.unitCurrentFrame = 0;
+            }
+
+            this.animatedTiles.forEach(
+                (animatedTile) => {
+                    animatedTile.tiles.forEach((tile) => {
+                        let tileId = animatedTile.frames[this.unitCurrentFrame];
+                        tile.index = tileId
+                    });
+                }
+            );
+        }
+
+        if (this.unitNextFrame < 0) {
+            this.unitNextFrame = this.unitFrameDuration
+        }
+    }
+
     handleMouseInput = (currentTile: Phaser.Tilemaps.Tile) => {
         if (this.input.mousePointer.isDown) {
-            if (currentTile) {
+            if (currentTile && (!this.lastCreatedTile || this.lastCreatedTile != currentTile)) {
                 // TODO: This sends way too often when it should just once
+                this.lastCreatedTile = currentTile
                 this.placeObject(this.currentBrush, currentTile)
             }
         }
@@ -331,7 +382,7 @@ export default class TileMapTest extends Phaser.Scene {
             const decorations = tileEncoding.decorations ?? tileEncoding.indices.map((_) => false)
 
             if (tileSetEncoding.get(this.terrainData[this.convertTileTo1DCoords(currentTile)].name.toLowerCase()).sizeY == 2) {
-                this.map.removeTileAt(currentTile.x, currentTile.y - 1, true, false, this.decorationLayer)
+                this.map.putTileAt(this.getOffsetIndex(1052, this.terrainTiles), currentTile.x, currentTile.y - 1, false, this.decorationLayer)
             }
             this.terrainData[this.convertTileTo1DCoords(currentTile)] = objectClass as any
 
@@ -360,10 +411,27 @@ export default class TileMapTest extends Phaser.Scene {
                 }
 
                 this.unitData[this.convertTileTo1DCoords(currentTile)] = objectClass as any
+                let existingAnimationIndex = this.animatedTiles.findIndex((animatedTile) => animatedTile.tiles[0].x == currentTile.x && animatedTile.tiles[0].y == currentTile.y)
+                if (existingAnimationIndex != -1) {
+                    this.animatedTiles.splice(existingAnimationIndex, 1)
+                }
 
                 const tileEncoding: TileEncoding = tileSetEncoding.get(objectClass.name.toLowerCase() + modifier + color + "_active")
 
-                this.map.putTileAt(this.getOffsetIndex(tileEncoding.indices[0], this.unitTiles), currentTile.x, currentTile.y, false, this.unitLayer)
+                this.map.putTileAt(this.getOffsetIndex(tileEncoding.indices[0], this.unitTiles), currentTile.x, currentTile.y, false, this.unitLayer);
+
+                let animatedTileData = {
+                    frames: [],
+                    tiles: [],
+                };
+
+                animatedTileData.frames.push(this.getOffsetIndex(tileEncoding.indices[0], this.unitTiles))
+                animatedTileData.frames.push(this.getOffsetIndex(tileEncoding.additionalFrames[0][0], this.unitTiles))
+                animatedTileData.frames.push(this.getOffsetIndex(tileEncoding.additionalFrames[1][0], this.unitTiles))
+
+                animatedTileData.tiles = [this.unitLayer.getTileAt(currentTile.x, currentTile.y)]
+
+                this.animatedTiles.push(animatedTileData);
             }
     }
 
@@ -400,6 +468,10 @@ export default class TileMapTest extends Phaser.Scene {
             }
             case Commands.infantry: {
                 this.currentBrush = Infantry;
+                break;
+            }
+            case Commands.recon: {
+                this.currentBrush = Recon;
                 break;
             }
         }
