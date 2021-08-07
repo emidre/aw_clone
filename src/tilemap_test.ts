@@ -10,6 +10,7 @@ import Plains from "./models/terrain_objects/plains"
 import Woods from "./models/terrain_objects/woods"
 import AnimatedTiles from 'phaser-animated-tiles/dist/AnimatedTiles.min.js';
 import { Recon } from "./models/player_objects/unit_objects/recon"
+import { MegaTank } from "./models/player_objects/unit_objects/megatank"
 
 class Letter {
     letter: string
@@ -74,13 +75,23 @@ const numbers: Array<_Number> = [
     new _Number("9", "NINE"),
 ]
 
+const gameObjectDefaultInstances: Map<typeof GameObject, GameObject> = new Map<typeof GameObject, GameObject>()
+gameObjectDefaultInstances.set(Plains, new Plains())
+gameObjectDefaultInstances.set(Woods, new Woods())
+gameObjectDefaultInstances.set(Mountain, new Mountain())
+gameObjectDefaultInstances.set(Infantry, new Infantry())
+gameObjectDefaultInstances.set(MegaTank, new MegaTank())
+gameObjectDefaultInstances.set(Recon, new Recon())
+
 class Commands {
     static plains = "plains"
     static woods = "woods"
     static mountain = "mountain"
     static selectedplayer = "selectedplayer"
     static infantry = "infantry"
+    static megatank = "megatank"
     static recon = "recon"
+    static clear = "clear"
 }
 
 const listOfCommands = Object.keys(Commands)
@@ -117,10 +128,14 @@ export default class TileMapTest extends Phaser.Scene {
     unitNextFrame: number = 0
     unitFrameRate: number = 1
     unitFrameDuration: number = 333
+    selectedUnitPosition: number = null
+    movementTiles: Array<{ x: number, y: number }> = []
+    attackTiles: Array<{ x: number, y: number }> = []
+    visionTiles: Array<{ x: number, y: number }> = []
 
     consolePrefix = "command: "
     keyEnter: Phaser.Input.Keyboard.Key
-    currentBrush: typeof GameObject = Plains
+    currentBrush: typeof GameObject = null
     currentTileClass: typeof GameObject
     selectedPlayer = 0
     unitLayer: Phaser.Tilemaps.TilemapLayer
@@ -136,6 +151,8 @@ export default class TileMapTest extends Phaser.Scene {
     rate: number = 1
     followTimeScale: boolean = true
     debug: any
+    keyEscape: Phaser.Input.Keyboard.Key
+    statusLayer: Phaser.Tilemaps.TilemapLayer
 
     constructor() {
         super('TileMapTest')
@@ -190,11 +207,15 @@ export default class TileMapTest extends Phaser.Scene {
 
         this.unitLayer = this.map.createBlankLayer('unitLayer', this.unitTiles)
         this.unitLayer.setScale(this.worldScale)
-        this.unitLayer.fill(this.getOffsetIndex(6, this.unitTiles))
+        this.unitLayer.fill(this.getOffsetIndex(35, this.unitTiles))
 
         this.decorationLayer = this.map.createBlankLayer('decorationLayer', this.terrainTiles)
         this.decorationLayer.setScale(this.worldScale)
         this.decorationLayer.fill(this.getOffsetIndex(1052, this.terrainTiles))
+
+        this.statusLayer = this.map.createBlankLayer('statusLayer', this.unitTiles)
+        this.statusLayer.setScale(this.worldScale)
+        this.statusLayer.fill(this.getOffsetIndex(35, this.unitTiles))
 
         this.marker = this.add.image(0, 0, 'cursor')
         this.marker.setScale(this.worldScale)
@@ -220,6 +241,7 @@ export default class TileMapTest extends Phaser.Scene {
         this.keySpace = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
         this.keyBackspace = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.BACKSPACE);
         this.keyEnter = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
+        this.keyEscape = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
         letters.forEach((letter) => {
             this.input.keyboard.addKey(letter.keyCode);
         })
@@ -297,10 +319,83 @@ export default class TileMapTest extends Phaser.Scene {
 
     handleMouseInput = (currentTile: Phaser.Tilemaps.Tile) => {
         if (this.input.mousePointer.isDown) {
-            if (currentTile && (!this.lastCreatedTile || this.lastCreatedTile != currentTile)) {
-                // TODO: This sends way too often when it should just once
-                this.lastCreatedTile = currentTile
-                this.placeObject(this.currentBrush, currentTile)
+            if (currentTile) {
+                if (this.currentBrush) {
+                    this.placeObject(this.currentBrush, currentTile)
+                    return
+                }
+
+                const unit = this.unitData[this.convertTileTo1DCoords(currentTile)]
+                if (this.movementTiles.find((tile) => tile.x == currentTile.x && tile.y == currentTile.y) && !unit) {
+                    // move
+                } else {
+                    if (!this.lastCreatedTile || this.lastCreatedTile != currentTile) {
+                        this.lastCreatedTile = currentTile
+
+                        if (unit) {
+                            this.movementTiles.forEach((tile) => {
+                                this.statusLayer.putTileAt(this.getOffsetIndex(35, this.unitTiles), tile.x, tile.y)
+                            })
+                            this.movementTiles = []
+
+                            this.selectedUnitPosition = this.convertTileTo1DCoords(currentTile)
+                            const unitInstance = (gameObjectDefaultInstances.get(unit) as UnitObject)
+                            const movement = unitInstance.movement
+                            const visitedTiles: Array<{ x: number, y: number }> = []
+                            const outerTiles: Array<{ x: number, y: number, remaining: number }> = []
+                            const newOuterTiles: Array<{ index: number, remaining: number }> = []
+                            const centerTile = { x: currentTile.x, y: currentTile.y, remaining: movement }
+                            outerTiles.push(centerTile)
+
+                            let firstRun: boolean = true
+                            while (outerTiles.length > 0) {
+                                let outerTile = outerTiles[0]
+
+                                let candidate: { x: number, y: number, remaining: number }
+                                let terrain: TerrainObject
+                                let movementCost
+
+
+
+                                candidate = { x: outerTile.x - 1, y: outerTile.y, remaining: outerTile.remaining }
+                                terrain = gameObjectDefaultInstances.get(this.terrainData[this.convertTileTo1DCoords(candidate)]) as TerrainObject
+                                movementCost = terrain.movementCost.get(unitInstance.movementType)
+                                candidate.remaining -= movementCost
+                                if (this.isTileValid(candidate, visitedTiles, outerTiles)) outerTiles.push(candidate)
+                                candidate = { x: outerTile.x + 1, y: outerTile.y, remaining: outerTile.remaining }
+                                terrain = gameObjectDefaultInstances.get(this.terrainData[this.convertTileTo1DCoords(candidate)]) as TerrainObject
+                                movementCost = terrain.movementCost.get(unitInstance.movementType)
+                                candidate.remaining -= movementCost
+                                if (this.isTileValid(candidate, visitedTiles, outerTiles)) outerTiles.push(candidate)
+                                candidate = { x: outerTile.x, y: outerTile.y - 1, remaining: outerTile.remaining }
+                                terrain = gameObjectDefaultInstances.get(this.terrainData[this.convertTileTo1DCoords(candidate)]) as TerrainObject
+                                movementCost = terrain.movementCost.get(unitInstance.movementType)
+                                candidate.remaining -= movementCost
+                                if (this.isTileValid(candidate, visitedTiles, outerTiles)) outerTiles.push(candidate)
+                                candidate = { x: outerTile.x, y: outerTile.y + 1, remaining: outerTile.remaining }
+                                terrain = gameObjectDefaultInstances.get(this.terrainData[this.convertTileTo1DCoords(candidate)]) as TerrainObject
+                                movementCost = terrain.movementCost.get(unitInstance.movementType)
+                                candidate.remaining -= movementCost
+                                if (this.isTileValid(candidate, visitedTiles, outerTiles)) outerTiles.push(candidate)
+
+                                visitedTiles.push({ x: outerTile.x, y: outerTile.y })
+                                outerTiles.splice(0, 1)
+                            }
+
+                            visitedTiles.forEach((tile) => {
+                                this.statusLayer.putTileAt(this.getOffsetIndex(6, this.unitTiles), tile.x, tile.y)
+                            })
+
+                            this.movementTiles = []
+                            this.movementTiles = this.movementTiles.concat(visitedTiles)
+                        } else {
+                            this.movementTiles.forEach((tile) => {
+                                this.statusLayer.putTileAt(this.getOffsetIndex(35, this.unitTiles), tile.x, tile.y)
+                            })
+                            this.movementTiles = []
+                        }
+                    }
+                }
             }
         }
     }
@@ -355,6 +450,37 @@ export default class TileMapTest extends Phaser.Scene {
                     this.consoleText.setText(this.consolePrefix)
                 }
             }
+        }
+
+        if (Phaser.Input.Keyboard.JustDown(this.keyEscape)) {
+            if (this.consoleActive) {
+                this.consoleActive = false
+                this.consoleText.setVisible(false)
+                this.consoleText.setText(this.consolePrefix)
+            }
+
+            if (this.selectedUnitPosition) {
+                this.selectedUnitPosition = null
+
+                console.log(this.movementTiles)
+
+                this.movementTiles.forEach((tile) => {
+                    this.statusLayer.putTileAt(this.getOffsetIndex(35, this.unitTiles), tile.x, tile.y)
+                })
+                this.attackTiles.forEach((tile) => {
+                    this.statusLayer.putTileAt(this.getOffsetIndex(35, this.unitTiles), tile.x, tile.y)
+                })
+                this.visionTiles.forEach((tile) => {
+                    this.statusLayer.putTileAt(this.getOffsetIndex(35, this.unitTiles), tile.x, tile.y)
+                })
+
+                this.movementTiles = []
+                this.attackTiles = []
+                this.visionTiles = []
+            }
+
+            this.lastCreatedTile = null
+            this.currentBrush = null;
         }
     }
 
@@ -470,18 +596,41 @@ export default class TileMapTest extends Phaser.Scene {
                 this.currentBrush = Infantry;
                 break;
             }
+            case Commands.megatank: {
+                this.currentBrush = MegaTank;
+                break;
+            }
             case Commands.recon: {
                 this.currentBrush = Recon;
                 break;
             }
+            case Commands.clear: {
+                this.currentBrush = null;
+                break;
+            }
         }
+
+        this.lastCreatedTile = null
     }
 
-    convertTileTo1DCoords = (tile: Phaser.Tilemaps.Tile) => {
+    convertTileTo1DCoords = (tile: Phaser.Tilemaps.Tile | { x: number, y: number }) => {
         return tile.y * this.map.width + tile.x
     }
 
     getOffsetIndex = (index: number, tileset: Phaser.Tilemaps.Tileset) => {
         return tileset.firstgid + index
+    }
+
+    private isTileValid(candidate: { x: number; y: number; remaining: number }, visitedTiles: Array<{ x: number, y: number }>, outerTiles: Array<{ x: number, y: number; remaining: number }>) {
+        if (!((candidate.x < 0 || candidate.x > this.map.width - 1) ||
+            (candidate.y < 0 || candidate.y > this.map.height - 1) ||
+            candidate.remaining < 0 ||
+            visitedTiles.find((visitedTile) => visitedTile.x == candidate.x && visitedTile.y == candidate.y)
+            //outerTiles.find((outerTile) => outerTile.x == candidate.x && outerTile.y == candidate.y)
+        )) {
+            return true
+        } else {
+            return false
+        }
     }
 }

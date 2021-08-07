@@ -1,5 +1,5 @@
-import { GameObject } from "./game_object";
+import { GameObject, MovementType } from "./game_object";
 
 export abstract class TerrainObject extends GameObject {
-    movementCostInfantry: number = null
+    movementCost: Map<MovementType, number> = null
 }
