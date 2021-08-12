@@ -94,6 +94,22 @@ class Commands {
     static clear = "clear"
 }
 
+class Vector2 {
+    public x: number
+    public y: number
+
+    constructor(_x?: number, _y?: number) {
+        this.x = _x ?? 0
+        this.y = _y ?? 0
+    }
+}
+
+interface PathTile {
+    vec: Vector2,
+    pred: PathTile | null,
+    remaining: number
+}
+
 const listOfCommands = Object.keys(Commands)
 
 export default class TileMapTest extends Phaser.Scene {
@@ -129,7 +145,7 @@ export default class TileMapTest extends Phaser.Scene {
     unitFrameRate: number = 1
     unitFrameDuration: number = 333
     selectedUnitPosition: number = null
-    movementTiles: Array<{ x: number, y: number }> = []
+    movementTiles: Array<PathTile> = []
     attackTiles: Array<{ x: number, y: number }> = []
     visionTiles: Array<{ x: number, y: number }> = []
 
@@ -277,6 +293,31 @@ export default class TileMapTest extends Phaser.Scene {
                 this.posText.setText('pos: ' + currentTile.x + ", " + currentTile.y)
                 this.marker.setVisible(true)
                 this.marker.setPosition(currentTile.x * 16 * this.worldScale + 11 * this.worldScale, currentTile.y * 16 * this.worldScale + 11 * this.worldScale)
+
+                if (this.movementTiles.length > 0) {
+                    this.movementTiles.forEach((tile) => {
+                        this.statusLayer.putTileAt(this.getOffsetIndex(6, this.unitTiles), tile.vec.x, tile.vec.y)
+                    })
+                    const currentMovementTiles = this.movementTiles.filter((tile) => tile.vec.x == currentTile.x && tile.vec.y == currentTile.y)
+                    let currentMovementTile = currentMovementTiles[0]
+                    currentMovementTiles.forEach((tile) => {
+                        if (tile.remaining > currentMovementTile.remaining) {
+                            currentMovementTile = tile
+                        }
+                    })
+                    if (currentMovementTile) {
+                        let path: Array<Vector2> = [currentMovementTile.vec]
+                        let pred = currentMovementTile.pred
+                        while (pred != null) {
+                            path.push(pred.vec)
+                            pred = pred.pred
+                        }
+                        path = path.reverse()
+                        path.forEach((tile) => {
+                            this.statusLayer.putTileAt(this.getOffsetIndex(78, this.unitTiles), tile.x, tile.y)
+                        })
+                    }
+                }
             }
         } else {
             if (this.lastSelectedTile) {
@@ -326,7 +367,7 @@ export default class TileMapTest extends Phaser.Scene {
                 }
 
                 const unit = this.unitData[this.convertTileTo1DCoords(currentTile)]
-                if (this.movementTiles.find((tile) => tile.x == currentTile.x && tile.y == currentTile.y) && !unit) {
+                if (this.movementTiles.find((tile) => tile.vec.x == currentTile.x && tile.vec.y == currentTile.y) && !unit) {
                     // move
                 } else {
                     if (!this.lastCreatedTile || this.lastCreatedTile != currentTile) {
@@ -334,63 +375,59 @@ export default class TileMapTest extends Phaser.Scene {
 
                         if (unit) {
                             this.movementTiles.forEach((tile) => {
-                                this.statusLayer.putTileAt(this.getOffsetIndex(35, this.unitTiles), tile.x, tile.y)
+                                this.statusLayer.putTileAt(this.getOffsetIndex(35, this.unitTiles), tile.vec.x, tile.vec.y)
                             })
                             this.movementTiles = []
 
                             this.selectedUnitPosition = this.convertTileTo1DCoords(currentTile)
                             const unitInstance = (gameObjectDefaultInstances.get(unit) as UnitObject)
                             const movement = unitInstance.movement
-                            const visitedTiles: Array<{ x: number, y: number }> = []
-                            const outerTiles: Array<{ x: number, y: number, remaining: number }> = []
-                            const newOuterTiles: Array<{ index: number, remaining: number }> = []
-                            const centerTile = { x: currentTile.x, y: currentTile.y, remaining: movement }
+                            const visitedTiles: Array<PathTile> = []
+                            const outerTiles: Array<PathTile> = []
+                            const centerTile: PathTile = { vec: new Vector2(currentTile.x, currentTile.y), pred: null, remaining: movement }
                             outerTiles.push(centerTile)
 
-                            let firstRun: boolean = true
                             while (outerTiles.length > 0) {
                                 let outerTile = outerTiles[0]
 
-                                let candidate: { x: number, y: number, remaining: number }
+                                let candidate: PathTile
                                 let terrain: TerrainObject
                                 let movementCost
 
+                                candidate = { vec: new Vector2(outerTile.vec.x - 1, outerTile.vec.y), pred: outerTile, remaining: outerTile.remaining }
+                                terrain = gameObjectDefaultInstances.get(this.terrainData[this.convertTileTo1DCoords(candidate.vec)]) as TerrainObject
+                                movementCost = terrain.movementCost.get(unitInstance.movementType)
+                                candidate.remaining -= movementCost
+                                if (this.isTileValid(candidate, visitedTiles)) outerTiles.push(candidate)
+                                candidate = { vec: new Vector2(outerTile.vec.x + 1, outerTile.vec.y), pred: outerTile, remaining: outerTile.remaining }
+                                terrain = gameObjectDefaultInstances.get(this.terrainData[this.convertTileTo1DCoords(candidate.vec)]) as TerrainObject
+                                movementCost = terrain.movementCost.get(unitInstance.movementType)
+                                candidate.remaining -= movementCost
+                                if (this.isTileValid(candidate, visitedTiles)) outerTiles.push(candidate)
+                                candidate = { vec: new Vector2(outerTile.vec.x, outerTile.vec.y - 1), pred: outerTile, remaining: outerTile.remaining }
+                                terrain = gameObjectDefaultInstances.get(this.terrainData[this.convertTileTo1DCoords(candidate.vec)]) as TerrainObject
+                                movementCost = terrain.movementCost.get(unitInstance.movementType)
+                                candidate.remaining -= movementCost
+                                if (this.isTileValid(candidate, visitedTiles)) outerTiles.push(candidate)
+                                candidate = { vec: new Vector2(outerTile.vec.x, outerTile.vec.y + 1), pred: outerTile, remaining: outerTile.remaining }
+                                terrain = gameObjectDefaultInstances.get(this.terrainData[this.convertTileTo1DCoords(candidate.vec)]) as TerrainObject
+                                movementCost = terrain.movementCost.get(unitInstance.movementType)
+                                candidate.remaining -= movementCost
+                                if (this.isTileValid(candidate, visitedTiles)) outerTiles.push(candidate)
 
-
-                                candidate = { x: outerTile.x - 1, y: outerTile.y, remaining: outerTile.remaining }
-                                terrain = gameObjectDefaultInstances.get(this.terrainData[this.convertTileTo1DCoords(candidate)]) as TerrainObject
-                                movementCost = terrain.movementCost.get(unitInstance.movementType)
-                                candidate.remaining -= movementCost
-                                if (this.isTileValid(candidate, visitedTiles, outerTiles)) outerTiles.push(candidate)
-                                candidate = { x: outerTile.x + 1, y: outerTile.y, remaining: outerTile.remaining }
-                                terrain = gameObjectDefaultInstances.get(this.terrainData[this.convertTileTo1DCoords(candidate)]) as TerrainObject
-                                movementCost = terrain.movementCost.get(unitInstance.movementType)
-                                candidate.remaining -= movementCost
-                                if (this.isTileValid(candidate, visitedTiles, outerTiles)) outerTiles.push(candidate)
-                                candidate = { x: outerTile.x, y: outerTile.y - 1, remaining: outerTile.remaining }
-                                terrain = gameObjectDefaultInstances.get(this.terrainData[this.convertTileTo1DCoords(candidate)]) as TerrainObject
-                                movementCost = terrain.movementCost.get(unitInstance.movementType)
-                                candidate.remaining -= movementCost
-                                if (this.isTileValid(candidate, visitedTiles, outerTiles)) outerTiles.push(candidate)
-                                candidate = { x: outerTile.x, y: outerTile.y + 1, remaining: outerTile.remaining }
-                                terrain = gameObjectDefaultInstances.get(this.terrainData[this.convertTileTo1DCoords(candidate)]) as TerrainObject
-                                movementCost = terrain.movementCost.get(unitInstance.movementType)
-                                candidate.remaining -= movementCost
-                                if (this.isTileValid(candidate, visitedTiles, outerTiles)) outerTiles.push(candidate)
-
-                                visitedTiles.push({ x: outerTile.x, y: outerTile.y })
+                                visitedTiles.push(outerTile)
                                 outerTiles.splice(0, 1)
                             }
 
                             visitedTiles.forEach((tile) => {
-                                this.statusLayer.putTileAt(this.getOffsetIndex(6, this.unitTiles), tile.x, tile.y)
+                                this.statusLayer.putTileAt(this.getOffsetIndex(6, this.unitTiles), tile.vec.x, tile.vec.y)
                             })
 
                             this.movementTiles = []
                             this.movementTiles = this.movementTiles.concat(visitedTiles)
                         } else {
                             this.movementTiles.forEach((tile) => {
-                                this.statusLayer.putTileAt(this.getOffsetIndex(35, this.unitTiles), tile.x, tile.y)
+                                this.statusLayer.putTileAt(this.getOffsetIndex(35, this.unitTiles), tile.vec.x, tile.vec.y)
                             })
                             this.movementTiles = []
                         }
@@ -465,7 +502,7 @@ export default class TileMapTest extends Phaser.Scene {
                 console.log(this.movementTiles)
 
                 this.movementTiles.forEach((tile) => {
-                    this.statusLayer.putTileAt(this.getOffsetIndex(35, this.unitTiles), tile.x, tile.y)
+                    this.statusLayer.putTileAt(this.getOffsetIndex(35, this.unitTiles), tile.vec.x, tile.vec.y)
                 })
                 this.attackTiles.forEach((tile) => {
                     this.statusLayer.putTileAt(this.getOffsetIndex(35, this.unitTiles), tile.x, tile.y)
@@ -613,7 +650,7 @@ export default class TileMapTest extends Phaser.Scene {
         this.lastCreatedTile = null
     }
 
-    convertTileTo1DCoords = (tile: Phaser.Tilemaps.Tile | { x: number, y: number }) => {
+    convertTileTo1DCoords = (tile: Phaser.Tilemaps.Tile | Vector2) => {
         return tile.y * this.map.width + tile.x
     }
 
@@ -621,12 +658,11 @@ export default class TileMapTest extends Phaser.Scene {
         return tileset.firstgid + index
     }
 
-    private isTileValid(candidate: { x: number; y: number; remaining: number }, visitedTiles: Array<{ x: number, y: number }>, outerTiles: Array<{ x: number, y: number; remaining: number }>) {
-        if (!((candidate.x < 0 || candidate.x > this.map.width - 1) ||
-            (candidate.y < 0 || candidate.y > this.map.height - 1) ||
+    private isTileValid(candidate: PathTile, visitedTiles: Array<PathTile>) {
+        if (!((candidate.vec.x < 0 || candidate.vec.x > this.map.width - 1) ||
+            (candidate.vec.y < 0 || candidate.vec.y > this.map.height - 1) ||
             candidate.remaining < 0 ||
-            visitedTiles.find((visitedTile) => visitedTile.x == candidate.x && visitedTile.y == candidate.y)
-            //outerTiles.find((outerTile) => outerTile.x == candidate.x && outerTile.y == candidate.y)
+            visitedTiles.find((visitedTile) => visitedTile.vec.x == candidate.vec.x && visitedTile.vec.y == candidate.vec.y)
         )) {
             return true
         } else {
