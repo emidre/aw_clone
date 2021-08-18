@@ -411,11 +411,13 @@ export default class TileMapTest extends Phaser.Scene {
                             const visitedTiles: Array<PathTile> = this.visitTilesAroundUnit(unit, currentTile)
 
                             this.paintTiles(visitedTiles, this.getOffsetIndex(6, this.unitTiles), this.statusLayer)
+                            this.clearPath()
 
                             this.movementTiles = []
                             this.movementTiles = this.movementTiles.concat(visitedTiles)
                         } else {
                             this.paintTiles(this.movementTiles, this.getOffsetIndex(35, this.unitTiles), this.statusLayer)
+                            this.clearPath()
                             this.movementTiles = []
                         }
                     }
@@ -486,8 +488,6 @@ export default class TileMapTest extends Phaser.Scene {
             if (this.selectedUnitPosition) {
                 this.selectedUnitPosition = null
 
-                console.log(this.movementTiles)
-
                 this.movementTiles.forEach((tile) => {
                     this.statusLayer.putTileAt(this.getOffsetIndex(35, this.unitTiles), tile.vec.x, tile.vec.y)
                 })
@@ -498,6 +498,7 @@ export default class TileMapTest extends Phaser.Scene {
                     this.statusLayer.putTileAt(this.getOffsetIndex(35, this.unitTiles), tile.x, tile.y)
                 })
 
+                this.clearPath()
                 this.movementTiles = []
                 this.attackTiles = []
                 this.visionTiles = []
@@ -721,12 +722,6 @@ export default class TileMapTest extends Phaser.Scene {
             return path
         }
     }
-
-    // [Orientation.TOP, 0b0010],
-    // [Orientation.BOTTOM, 0b0100],
-    // [Orientation.LEFT, 0b0110],
-    // [Orientation.RIGHT, 0b1000],
-    // [Orientation.null, 0b0001],
 
     private showShortestPath(currentTile: Phaser.Tilemaps.Tile | Vector2) {
         let path = this.calculateShortestPath(currentTile)
