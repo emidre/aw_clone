@@ -1,14 +1,12 @@
 import * as Phaser from "phaser";
+import { Constants } from "./constants";
 import Demo from "./demo";
-import TileMapTest from "./tilemap_test";
-
-export const gameWidth = 1280
-export const gameHeight = 720
+import GameManager from "./game_manager";
 
 var config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
-  width: gameWidth,
-  height: gameHeight,
+  width: Constants.gameWidth,
+  height: Constants.gameHeight,
   physics: {
     default: 'arcade',
     arcade: {
@@ -16,7 +14,7 @@ var config: Phaser.Types.Core.GameConfig = {
       debug: false
     }
   },
-  scene: TileMapTest
+  scene: GameManager
 };
 
 var game = new Phaser.Game(config);
