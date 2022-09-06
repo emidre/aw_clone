@@ -1,7 +1,7 @@
 import ConsoleManager from "./console_manager";
-import { Constants } from "./constants";
-import GameManager from "./game_manager"
-import { PathTile } from "./models/pathTile";
+import Constants from "./constants";
+import GameManager from "./gameManager"
+import PathTile from "./models/pathTile";
 import TileManager from "./tile_manager";
 
 export default class UpdateManager {

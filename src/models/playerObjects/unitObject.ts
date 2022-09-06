@@ -1,5 +1,5 @@
-import { MovementType } from "../game_object";
-import { PlayerObject } from "../player_object";
+import { MovementType } from "../gameObject";
+import PlayerObject from "../playerObject";
 
 export abstract class UnitObject extends PlayerObject {
     public movement: number = null

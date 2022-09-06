@@ -1,7 +1,7 @@
-import { MovementType } from "../../game_object";
-import { UnitObject } from "../unit_objects";
+import { MovementType } from "../../gameObject";
+import { UnitObject } from "../unitObject";
 
-export class MegaTank extends UnitObject {
+export default class MegaTank extends UnitObject {
     constructor(_player?: number) {
         super()
 

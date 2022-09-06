@@ -1,7 +1,7 @@
-import { MovementType } from "../../game_object";
-import { UnitObject } from "../unit_objects";
+import { MovementType } from "../../gameObject";
+import { UnitObject } from "../unitObject";
 
-export class Recon extends UnitObject {
+export default class Recon extends UnitObject {
     constructor(_player?: number) {
         super()
 

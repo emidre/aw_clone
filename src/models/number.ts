@@ -1,4 +1,4 @@
-export class _Number {
+export default class _Number {
     number: string
     name: string
     keyCode: number

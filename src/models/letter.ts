@@ -1,4 +1,4 @@
-export class Letter {
+export default class Letter {
     letter: string
     keyCode: number
 

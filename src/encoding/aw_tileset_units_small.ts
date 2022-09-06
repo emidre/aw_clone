@@ -1,4 +1,4 @@
-import { TileEncoding, TileSetEncoding } from "./object_indices";
+import { TileEncoding, TileSetEncoding } from "./objectIndices";
 
 // Order: Orange Star Active
 // recon (145), antiair, fighter, battleship, infantry_os, mech_os (160), recon_inactive (145 + 18) ...

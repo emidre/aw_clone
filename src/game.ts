@@ -1,7 +1,7 @@
 import * as Phaser from "phaser";
-import { Constants } from "./constants";
+import Constants from "./constants";
 import Demo from "./demo";
-import GameManager from "./game_manager";
+import GameManager from "./gameManager";
 
 var config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,

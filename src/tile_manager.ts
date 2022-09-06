@@ -1,14 +1,15 @@
-import { Constants } from "./constants";
-import { TileSetEncoding, tileSetEncodings, TileEncoding } from "./encoding/object_indices";
-import GameManager from "./game_manager";
-import { GameObject } from "./models/game_object";
+import Constants from "./constants";
+import { TileSetEncoding, tileSetEncodings, TileEncoding } from "./encoding/objectIndices";
+import GameManager from "./gameManager";
+import { GameObject } from "./models/gameObject";
 import { Orientation } from "./models/orientation";
-import { PathTile } from "./models/pathTile";
-import { UnitObject } from "./models/player_objects/unit_objects";
-import { TerrainObject } from "./models/terrain_object";
-import Plains from "./models/terrain_objects/plains";
-import { Vector2 } from "./models/vector2";
-import UpdateManager from "./update_manager";
+import PathTile from "./models/pathTile";
+import BuildingObject from "./models/playerObjects/buildingObject";
+import { UnitObject } from "./models/playerObjects/unitObject";
+import TerrainObject from "./models/terrainObject";
+import Plains from "./models/terrainObjects/plains";
+import Vector2 from "./models/vector2";
+import UpdateManager from "./updateManager";
 
 export default class TileManager {
     private static _instance: TileManager;
@@ -89,7 +90,7 @@ export default class TileManager {
 
     placeObject = (objectClass: typeof GameObject, currentTile: Phaser.Tilemaps.Tile) => {
         let tileSetName = ""
-        if (objectClass.prototype instanceof TerrainObject) {
+        if ((objectClass.prototype instanceof TerrainObject)  || (objectClass.prototype instanceof BuildingObject)) {
             tileSetName = "aw_tileset_normal"
         } else if (objectClass.prototype instanceof UnitObject) {
             tileSetName = "aw_tileset_units_small"
@@ -104,10 +105,15 @@ export default class TileManager {
             const sizeY = tileEncoding.sizeY ?? 1
             const decorations = tileEncoding.decorations ?? tileEncoding.indices.map((_) => false)
 
-            if (tileSetEncoding.get(this.terrainData[this.convertTileTo1DCoords(currentTile)].name.toLowerCase()).sizeY == 2) {
+            //if (tileSetEncoding.get(this.terrainData[this.convertTileTo1DCoords(currentTile)].name.toLowerCase()).sizeY == 2) {
+            if (currentTile.y - 1 >= 0) {
                 this.map.putTileAt(this.getOffsetIndex(1052, this.terrainTiles), currentTile.x, currentTile.y - 1, false, this.decorationLayer)
             }
             this.terrainData[this.convertTileTo1DCoords(currentTile)] = objectClass as any
+            let existingAnimationIndex = this.animatedTiles.findIndex((animatedTile) => animatedTile.tiles[0].x == currentTile.x && animatedTile.tiles[0].y == currentTile.y)
+            if (existingAnimationIndex != -1) {
+                this.animatedTiles.splice(existingAnimationIndex, 1)
+            }
 
             // Bottom right is assumed to be the origin point of the sprite
             tileEncoding.indices.forEach((tileIndex, countingIndex) => {
@@ -117,45 +123,100 @@ export default class TileManager {
                 const layer = decorations[countingIndex] == true ? this.decorationLayer : this.terrainLayer
                 this.map.putTileAt(this.getOffsetIndex(tileIndex, this.terrainTiles), currentTile.x - matrixPositionX, currentTile.y - matrixPositionY, false, layer)
             })
-        } else
-            if (objectClass.prototype instanceof UnitObject) {
-                let modifier = ""
+        } else if (objectClass.prototype instanceof UnitObject) {
+            let modifier = ""
 
-                if (objectClass.name.toLowerCase() == "infantry") {
-                    modifier = "_os" // for now
-                }
-
-                let color = ""
-                switch (UpdateManager.Instance.selectedPlayer) {
-                    case 0: {
-                        color = "_orange"
-                        break
-                    }
-                }
-
-                this.unitData[this.convertTileTo1DCoords(currentTile)] = objectClass as any
-                let existingAnimationIndex = this.animatedTiles.findIndex((animatedTile) => animatedTile.tiles[0].x == currentTile.x && animatedTile.tiles[0].y == currentTile.y)
-                if (existingAnimationIndex != -1) {
-                    this.animatedTiles.splice(existingAnimationIndex, 1)
-                }
-
-                const tileEncoding: TileEncoding = tileSetEncoding.get(objectClass.name.toLowerCase() + modifier + color + "_active")
-
-                this.map.putTileAt(this.getOffsetIndex(tileEncoding.indices[0], this.unitTiles), currentTile.x, currentTile.y, false, this.unitLayer);
-
-                let animatedTileData = {
-                    frames: [],
-                    tiles: [],
-                };
-
-                animatedTileData.frames.push(this.getOffsetIndex(tileEncoding.indices[0], this.unitTiles))
-                animatedTileData.frames.push(this.getOffsetIndex(tileEncoding.additionalFrames[0][0], this.unitTiles))
-                animatedTileData.frames.push(this.getOffsetIndex(tileEncoding.additionalFrames[1][0], this.unitTiles))
-
-                animatedTileData.tiles = [this.unitLayer.getTileAt(currentTile.x, currentTile.y)]
-
-                this.animatedTiles.push(animatedTileData);
+            if (objectClass.name.toLowerCase() == "infantry") {
+                modifier = "_os" // for now
             }
+
+            let color = ""
+            switch (UpdateManager.Instance.selectedPlayer) {
+                case 0: {
+                    color = "_orange"
+                    break
+                }
+            }
+
+            this.unitData[this.convertTileTo1DCoords(currentTile)] = objectClass as any
+            let existingAnimationIndex = this.animatedTiles.findIndex((animatedTile) => animatedTile.tiles[0].x == currentTile.x && animatedTile.tiles[0].y == currentTile.y)
+            if (existingAnimationIndex != -1) {
+                this.animatedTiles.splice(existingAnimationIndex, 1)
+            }
+
+            const tileEncoding: TileEncoding = tileSetEncoding.get(objectClass.name.toLowerCase() + modifier + color + "_active")
+
+            this.map.putTileAt(this.getOffsetIndex(tileEncoding.indices[0], this.unitTiles), currentTile.x, currentTile.y, false, this.unitLayer);
+
+            let animatedTileData = {
+                frames: [],
+                tiles: [],
+            };
+
+            animatedTileData.frames.push(this.getOffsetIndex(tileEncoding.indices[0], this.unitTiles))
+            animatedTileData.frames.push(this.getOffsetIndex(tileEncoding.additionalFrames[0][0], this.unitTiles))
+            animatedTileData.frames.push(this.getOffsetIndex(tileEncoding.additionalFrames[1][0], this.unitTiles))
+
+            animatedTileData.tiles = [this.unitLayer.getTileAt(currentTile.x, currentTile.y)]
+
+            this.animatedTiles.push(animatedTileData);
+        } else if (objectClass.prototype instanceof BuildingObject) {
+            let modifier = ""
+
+            if (objectClass.name.toLowerCase() == "hq") {
+                modifier = "_os" // for now
+            }
+
+            let color = ""
+            switch (UpdateManager.Instance.selectedPlayer) {
+                case 0: {
+                    color = "_orange"
+                    break
+                }
+                case 1: {
+                    color = "_blue"
+                    break
+                }
+            }
+
+            let name = objectClass.name.toLowerCase() + modifier + color + "_active"
+            const tileEncoding: TileEncoding = tileSetEncoding.get(name)
+
+            const sizeX = tileEncoding.sizeX ?? 1
+            const sizeY = tileEncoding.sizeY ?? 1
+            const decorations = tileEncoding.decorations ?? tileEncoding.indices.map((_) => false)
+
+            if (currentTile.y - 1) {
+                this.map.putTileAt(this.getOffsetIndex(1052, this.terrainTiles), currentTile.x, currentTile.y - 1, false, this.decorationLayer)
+            }
+            this.terrainData[this.convertTileTo1DCoords(currentTile)] = objectClass as any
+            let existingAnimationIndex = this.animatedTiles.findIndex((animatedTile) => animatedTile.tiles[0].x == currentTile.x && animatedTile.tiles[0].y == currentTile.y)
+            if (existingAnimationIndex != -1) {
+                this.animatedTiles.splice(existingAnimationIndex, 1)
+            }
+
+            // Bottom right is assumed to be the origin point of the sprite
+            tileEncoding.indices.forEach((tileIndex, countingIndex) => {
+                const matrixPositionX = Math.abs(countingIndex % sizeX - (sizeX - 1))
+                const matrixPositionY = Math.abs(Math.floor(countingIndex / sizeX) - (sizeY - 1))
+
+                const layer = decorations[countingIndex] == true ? this.decorationLayer : this.terrainLayer
+                this.map.putTileAt(this.getOffsetIndex(tileIndex, this.terrainTiles), currentTile.x - matrixPositionX, currentTile.y - matrixPositionY, false, layer)
+            })
+
+            let animatedTileData = {
+                frames: [],
+                tiles: [],
+            };
+
+            animatedTileData.frames.push(this.getOffsetIndex(tileEncoding.indices[1], this.terrainTiles))
+            animatedTileData.frames.push(this.getOffsetIndex(tileEncoding.indices[1], this.terrainTiles))
+            animatedTileData.frames.push(this.getOffsetIndex(tileEncoding.additionalFrames[0][0], this.terrainTiles))
+
+            animatedTileData.tiles = [this.terrainLayer.getTileAt(currentTile.x, currentTile.y)]
+
+            this.animatedTiles.push(animatedTileData);
+        }
     }
 
     isAnyUnitMoving = () => {

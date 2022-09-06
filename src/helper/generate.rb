@@ -1,0 +1,2 @@
+require "./generateCommands"
+require "./generateGameObjectDefaultInstances"

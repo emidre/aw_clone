@@ -1,5 +1,5 @@
-import { INVALID_MOVEMENT, MovementType } from "../game_object";
-import { TerrainObject } from "../terrain_object";
+import { INVALID_MOVEMENT, MovementType } from "../gameObject";
+import TerrainObject from "../terrainObject";
 
 export default class Plains extends TerrainObject {
     constructor() {

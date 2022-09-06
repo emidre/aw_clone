@@ -1,10 +1,10 @@
-import { Commands } from "./models/commands"
-import { GameObject } from "./models/game_object"
-import { Letter } from "./models/letter"
-import { _Number } from "./models/number"
+import Commands from "./models/commands"
+import { GameObject } from "./models/gameObject"
+import Letter from "./models/letter"
+import _Number from "./models/number"
 import { Orientation } from "./models/orientation"
 
-export abstract class Constants {
+export default abstract class Constants {
     static readonly rate: number = 1
     static readonly followTimeScale: boolean = true
     static readonly unitFrameRate: number = 1
@@ -49,4 +49,5 @@ export abstract class Constants {
         [Orientation.null, 0b0001],
     ])
     static gameObjectDefaultInstances: Map<typeof GameObject, GameObject> = new Map<typeof GameObject, GameObject>()
+    static EMPTY_TERRAIN = 1637
 }

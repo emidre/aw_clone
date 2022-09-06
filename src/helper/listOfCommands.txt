@@ -1,0 +1,32 @@
+            case Commands.mountain: {
+                TileManager.Instance.currentBrush = Mountain;
+                break;
+            }
+            case Commands.plains: {
+                TileManager.Instance.currentBrush = Plains;
+                break;
+            }
+            case Commands.woods: {
+                TileManager.Instance.currentBrush = Woods;
+                break;
+            }
+            case Commands.base: {
+                TileManager.Instance.currentBrush = Base;
+                break;
+            }
+            case Commands.hq: {
+                TileManager.Instance.currentBrush = HQ;
+                break;
+            }
+            case Commands.infantry: {
+                TileManager.Instance.currentBrush = Infantry;
+                break;
+            }
+            case Commands.megatank: {
+                TileManager.Instance.currentBrush = MegaTank;
+                break;
+            }
+            case Commands.recon: {
+                TileManager.Instance.currentBrush = Recon;
+                break;
+            }

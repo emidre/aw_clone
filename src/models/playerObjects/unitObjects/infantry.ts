@@ -1,7 +1,7 @@
-import { MovementType } from "../../game_object";
-import { UnitObject } from "../unit_objects";
+import { MovementType } from "../../gameObject";
+import { UnitObject } from "../unitObject";
 
-export class Infantry extends UnitObject {
+export default class Infantry extends UnitObject {
     constructor(_player?: number) {
         super()
 

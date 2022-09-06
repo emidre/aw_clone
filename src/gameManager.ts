@@ -1,5 +1,5 @@
-import UpdateManager from "./update_manager"
-import { Constants } from "./constants"
+import UpdateManager from "./updateManager"
+import Constants from "./constants"
 import { setGameObjectDefaultInstances } from "./setGameObjectDefaultInstances"
 import ConsoleManager from "./console_manager"
 import TileManager from "./tile_manager"

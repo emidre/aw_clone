@@ -1,6 +1,6 @@
-import { Vector2 } from "./vector2";
+import Vector2 from "./vector2";
 
-export interface PathTile {
+export default interface PathTile {
     vec: Vector2,
     pred: PathTile | null,
     remaining: number

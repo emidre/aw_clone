@@ -1,14 +1,15 @@
-import { Constants } from "./constants";
-import GameManager from "./game_manager";
-import { Commands } from "./models/commands";
-import { Infantry } from "./models/player_objects/unit_objects/infantry";
-import { MegaTank } from "./models/player_objects/unit_objects/megatank";
-import { Recon } from "./models/player_objects/unit_objects/recon";
-import Mountain from "./models/terrain_objects/mountain";
-import Plains from "./models/terrain_objects/plains";
-import Woods from "./models/terrain_objects/woods";
+import Constants from "./constants";
+import Commands from "./models/commands";
+import Base from "./models/playerObjects/buildingObjects/Base";
+import HQ from "./models/playerObjects/buildingObjects/hq";
+import Infantry from "./models/playerObjects/unitObjects/infantry";
+import MegaTank from "./models/playerObjects/unitObjects/megatank";
+import Recon from "./models/playerObjects/unitObjects/recon";
+import Mountain from "./models/terrainObjects/mountain";
+import Plains from "./models/terrainObjects/plains";
+import Woods from "./models/terrainObjects/woods";
 import TileManager from "./tile_manager";
-import UpdateManager from "./update_manager";
+import UpdateManager from "./updateManager";
 
 export default class ConsoleManager {
     private static _instance: ConsoleManager;
@@ -39,6 +40,14 @@ export default class ConsoleManager {
         console.log(`Executing ${command}`)
 
         switch (command) {
+            //
+            // Objects
+            //
+
+            case Commands.mountain: {
+                TileManager.Instance.currentBrush = Mountain;
+                break;
+            }
             case Commands.plains: {
                 TileManager.Instance.currentBrush = Plains;
                 break;
@@ -47,15 +56,12 @@ export default class ConsoleManager {
                 TileManager.Instance.currentBrush = Woods;
                 break;
             }
-            case Commands.mountain: {
-                TileManager.Instance.currentBrush = Mountain;
+            case Commands.base: {
+                TileManager.Instance.currentBrush = Base;
                 break;
             }
-            case Commands.selectedplayer: {
-                const playerNumber = Number.parseInt(command.split(" ")[1])
-                if ([0, 1, 2, 3, 4].includes(playerNumber)) {
-                    UpdateManager.Instance.selectedPlayer = playerNumber
-                }
+            case Commands.hq: {
+                TileManager.Instance.currentBrush = HQ;
                 break;
             }
             case Commands.infantry: {
@@ -68,6 +74,18 @@ export default class ConsoleManager {
             }
             case Commands.recon: {
                 TileManager.Instance.currentBrush = Recon;
+                break;
+            }
+
+            //
+            // Other
+            //
+
+            case Commands.selectedplayer: {
+                const playerNumber = Number.parseInt(command.split(" ")[1])
+                if ([0, 1, 2, 3, 4].includes(playerNumber)) {
+                    UpdateManager.Instance.selectedPlayer = playerNumber
+                }
                 break;
             }
             case Commands.clear: {
