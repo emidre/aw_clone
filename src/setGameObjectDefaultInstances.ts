@@ -1,5 +1,7 @@
 import Constants from "./constants"
 import Mountain from "./models/playerObjects/terrainObjects/Mountain"
+import Pipe from "./models/playerObjects/terrainObjects/Pipe"
+import PipeSeam from "./models/playerObjects/terrainObjects/PipeSeam"
 import Plains from "./models/playerObjects/terrainObjects/Plains"
 import Roads from "./models/playerObjects/terrainObjects/Roads"
 import Woods from "./models/playerObjects/terrainObjects/Woods"
@@ -11,6 +13,8 @@ import Recon from "./models/playerObjects/unitObjects/Recon"
 
 export const setGameObjectDefaultInstances = () => {
     Constants.gameObjectDefaultInstances.set(Mountain, new Mountain())
+    Constants.gameObjectDefaultInstances.set(Pipe, new Pipe())
+    Constants.gameObjectDefaultInstances.set(PipeSeam, new PipeSeam())
     Constants.gameObjectDefaultInstances.set(Plains, new Plains())
     Constants.gameObjectDefaultInstances.set(Roads, new Roads())
     Constants.gameObjectDefaultInstances.set(Woods, new Woods())

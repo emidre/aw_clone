@@ -1,7 +1,7 @@
 import UpdateManager from "./updateManager"
 import Constants from "./constants"
 import { setGameObjectDefaultInstances } from "./setGameObjectDefaultInstances"
-import ConsoleManager from "./console_manager"
+import ConsoleManager from "./consoleManager"
 import TileManager from "./tileManager"
 import TerrainObject from "./models/playerObjects/terrainObject"
 import { UnitObject } from "./models/playerObjects/unitObject"

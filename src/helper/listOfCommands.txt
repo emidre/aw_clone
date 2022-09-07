@@ -2,6 +2,14 @@
                 TileManager.Instance.currentBrush = Mountain;
                 break;
             }
+            case Commands.pipe: {
+                TileManager.Instance.currentBrush = Pipe;
+                break;
+            }
+            case Commands.pipeseam: {
+                TileManager.Instance.currentBrush = PipeSeam;
+                break;
+            }
             case Commands.plains: {
                 TileManager.Instance.currentBrush = Plains;
                 break;

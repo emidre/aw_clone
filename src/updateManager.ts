@@ -1,4 +1,4 @@
-import ConsoleManager from "./console_manager";
+import ConsoleManager from "./consoleManager";
 import Constants from "./constants";
 import GameManager from "./gameManager"
 import PathTile from "./models/pathTile";

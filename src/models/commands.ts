@@ -1,5 +1,7 @@
 export default class Commands {
     static mountain = "mountain"
+    static pipe = "pipe"
+    static pipeseam = "pipeseam"
     static plains = "plains"
     static roads = "roads"
     static woods = "woods"

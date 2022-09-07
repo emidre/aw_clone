@@ -11,6 +11,8 @@ import Woods from "./models/playerObjects/terrainObjects/Woods";
 import TileManager from "./tileManager";
 import UpdateManager from "./updateManager";
 import Roads from "./models/playerObjects/terrainObjects/Roads";
+import Pipe from "./models/playerObjects/terrainObjects/Pipe";
+import PipeSeam from "./models/playerObjects/terrainObjects/PipeSeam";
 
 export default class ConsoleManager {
     private static _instance: ConsoleManager;
@@ -47,6 +49,14 @@ export default class ConsoleManager {
 
             case Commands.mountain: {
                 TileManager.Instance.currentBrush = Mountain;
+                break;
+            }
+            case Commands.pipe: {
+                TileManager.Instance.currentBrush = Pipe;
+                break;
+            }
+            case Commands.pipeseam: {
+                TileManager.Instance.currentBrush = PipeSeam;
                 break;
             }
             case Commands.plains: {

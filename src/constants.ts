@@ -41,7 +41,14 @@ export default abstract class Constants {
         [0b00100001, 77],
         [0b00010110, 113],
     ])
-    // left up right down
+    static readonly orientationToBitmaskForMarker: Map<Orientation, number> = new Map([
+        [Orientation.TOP, 0b0010],
+        [Orientation.BOTTOM, 0b0100],
+        [Orientation.LEFT, 0b0110],
+        [Orientation.RIGHT, 0b1000],
+        [Orientation.null, 0b0001],
+    ])
+    // Roads
     static readonly bitOrientationToIndexForRoads: Map<number, number> = new Map([
         [0b0011, 2],
         [0b1011, 3],
@@ -73,12 +80,43 @@ export default abstract class Constants {
         [80, 0b0000],
         [81, 0b0000],
     ])
+    // Pipes
+    static readonly bitOrientationToIndexForPipes: Map<number, number> = new Map([
+        [0b0011, 34],
+        [0b1001, 35],
+        [0b0001, 36],
+        [0b0000, 37],
+        [0b1010, 37],
+        [0b0101, 38],
+        [0b0110, 60],
+        [0b1100, 61],
+        [0b0100, 62],
+        [0b0010, 86],
+        [0b1000, 87],
+
+        [0b1111, 38],
+        [0b0111, 38],
+        [0b1101, 38],
+        [0b1011, 37],
+        [0b1110, 37],
+    ])
+    static readonly indexToBitOrientationForPipes: Map<number, number> = new Map([
+        [34, 0b0011],
+        [35, 0b1001],
+        [36, 0b0001],
+        [37, 0b0000],
+        [38, 0b0101],
+        [60, 0b0110],
+        [61, 0b1100],
+        [62, 0b0100],
+        [86, 0b0010],
+        [87, 0b1000],
+    ])
     static readonly orientationToBitmask: Map<Orientation, number> = new Map([
-        [Orientation.TOP, 0b0010],
-        [Orientation.BOTTOM, 0b0100],
-        [Orientation.LEFT, 0b0110],
-        [Orientation.RIGHT, 0b1000],
-        [Orientation.null, 0b0001],
+        [Orientation.LEFT, 0b1000],
+        [Orientation.TOP, 0b0100],
+        [Orientation.RIGHT, 0b0010],
+        [Orientation.BOTTOM, 0b0001],
     ])
     static gameObjectDefaultInstances: Map<typeof GameObject, GameObject> = new Map<typeof GameObject, GameObject>()
     static EMPTY_TERRAIN = 1637

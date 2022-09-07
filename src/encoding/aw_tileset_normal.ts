@@ -22,6 +22,12 @@ const terrain = {
     },
     "roads": {
         indices: [] // handled extra
+    },
+    "pipe": {
+        indices: [] // handled extra
+    },
+    "pipeseam": {
+        indices: [] // handled extra
     }
 }
 

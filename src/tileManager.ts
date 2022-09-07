@@ -11,6 +11,8 @@ import Plains from "./models/playerObjects/terrainObjects/Plains";
 import Vector2 from "./models/vector2";
 import UpdateManager from "./updateManager";
 import Roads from "./models/playerObjects/terrainObjects/Roads";
+import Pipe from "./models/playerObjects/terrainObjects/Pipe";
+import PipeSeam from "./models/playerObjects/terrainObjects/PipeSeam";
 
 type AnimatedTiles = Array<{
     frames: Array<number>;
@@ -123,36 +125,12 @@ export default class TileManager {
                 this.map.putTileAt(this.getOffsetIndex(tileIndex, this.terrainTiles), currentTile.x - matrixPositionX, currentTile.y - matrixPositionY, false, layer)
             })
 
-            // left up right down
             if (objectClass.name == Roads.name) {
-                let roadLayout = 0b0000
-                let newX = 0
-                let newY = 0
+                this.unifyTileAndNeighbors(currentTile, Constants.bitOrientationToIndexForRoads, Constants.indexToBitOrientationForRoads, [Roads.name])
+            }
 
-                newX = currentTile.x - 1
-                newY = currentTile.y
-                if (newX >= 0) {
-                    roadLayout = this.updateRoadAndLayout(currentTile, newX, newY, roadLayout, 2, 3, 0b1000, 0b0010);
-                }
-
-                newX = currentTile.x + 1
-                newY = currentTile.y
-                if (newX < this.map.width) {
-                    roadLayout = this.updateRoadAndLayout(currentTile, newX, newY, roadLayout, 0, 3, 0b0010, 0b1000);
-                }
-                newX = currentTile.x 
-                newY = currentTile.y - 1
-                if (newY >= 0) {
-                    roadLayout = this.updateRoadAndLayout(currentTile, newX, newY, roadLayout, 3, 3, 0b0100, 0b0001);
-                }
-
-                newX = currentTile.x
-                newY = currentTile.y + 1
-                if (newY < this.map.height) {
-                    roadLayout = this.updateRoadAndLayout(currentTile, newX, newY, roadLayout, 1, 3, 0b0001, 0b0100);
-                }
-                
-                this.map.putTileAt(this.getOffsetIndex(Constants.bitOrientationToIndexForRoads.get(roadLayout), this.terrainTiles), currentTile.x, currentTile.y, false, this.terrainLayer)
+            if (objectClass.name == Pipe.name) {
+                this.unifyTileAndNeighbors(currentTile, Constants.bitOrientationToIndexForPipes, Constants.indexToBitOrientationForPipes, [Pipe.name, PipeSeam.name])
             }
         } else if (objectClass.prototype instanceof UnitObject) {
             let modifier = ""
@@ -264,8 +242,8 @@ export default class TileManager {
             const pred = i - 1 >= 0 ? path[i - 1] : null
             const succ = i + 1 >= 0 ? path[i + 1] : null
 
-            const backwardsOrientation = Constants.orientationToBitmask.get(this.findOrientation(pred, curr)) << 4
-            const forwardOrientation = Constants.orientationToBitmask.get(this.findOrientation(succ, curr))
+            const backwardsOrientation = Constants.orientationToBitmaskForMarker.get(this.findOrientation(pred, curr)) << 4
+            const forwardOrientation = Constants.orientationToBitmaskForMarker.get(this.findOrientation(succ, curr))
             const orientation = backwardsOrientation + forwardOrientation
             const index = Constants.bitOrientationToIndexForMarker.get(orientation)
 
@@ -341,58 +319,88 @@ export default class TileManager {
     // Private
     //
 
-    // left up right down
-    private updateRoadAndLayout(currentTile: Phaser.Tilemaps.Tile, newX: number, newY: number, roadLayout: number, shiftLeft: number, shiftRight: number, orientationToNeighbor: number, orientationToCurrent: number) {
+    private unifyTileAndNeighbors(currentTile: Phaser.Tilemaps.Tile, bitOrientationToIndexMap: Map<number, number>, indexToBitOrientationMap: Map<number, number>, namesToCheck: Array<string>) {
+        let roadLayout = 0b0000
+        let newX = 0
+        let newY = 0
+
+        newX = currentTile.x - 1
+        newY = currentTile.y
+        if (newX >= 0) {
+            roadLayout = this.updateNeighborTileAndLayout(newX, newY, roadLayout, Constants.orientationToBitmask.get(Orientation.LEFT), bitOrientationToIndexMap, indexToBitOrientationMap, namesToCheck);
+        }
+
+        newX = currentTile.x + 1
+        newY = currentTile.y
+        if (newX < this.map.width) {
+            roadLayout = this.updateNeighborTileAndLayout(newX, newY, roadLayout, Constants.orientationToBitmask.get(Orientation.RIGHT), bitOrientationToIndexMap, indexToBitOrientationMap, namesToCheck);
+        }
+        newX = currentTile.x
+        newY = currentTile.y - 1
+        if (newY >= 0) {
+            roadLayout = this.updateNeighborTileAndLayout(newX, newY, roadLayout, Constants.orientationToBitmask.get(Orientation.TOP), bitOrientationToIndexMap, indexToBitOrientationMap, namesToCheck);
+        }
+
+        newX = currentTile.x
+        newY = currentTile.y + 1
+        if (newY < this.map.height) {
+            roadLayout = this.updateNeighborTileAndLayout(newX, newY, roadLayout, Constants.orientationToBitmask.get(Orientation.BOTTOM), bitOrientationToIndexMap, indexToBitOrientationMap, namesToCheck);
+        }
+
+        console.log(this.dec2bin(roadLayout));
+        
+        this.map.putTileAt(this.getOffsetIndex(bitOrientationToIndexMap.get(roadLayout), this.terrainTiles), currentTile.x, currentTile.y, false, this.terrainLayer)
+    }
+
+    private updateNeighborTileAndLayout(newX: number, newY: number, layout: number, orientationToNeighbor: number, bitOrientationToIndexMap: Map<number, number>, indexToBitOrientationMap: Map<number, number>, namesToCheck: Array<string>) {
         let neighbor = this.terrainLayer.getTileAt(newX, newY);
-        let newRoadLayout = roadLayout;
-        if (this.terrainData[this.convertTileTo1DCoords(neighbor)].name == Roads.name) {
-            newRoadLayout += orientationToNeighbor;
-            let oldLayout = Constants.indexToBitOrientationForRoads.get(neighbor.index - 1);
+        let newLayout = layout;
+        if (namesToCheck.includes(this.terrainData[this.convertTileTo1DCoords(neighbor)].name)) {
+            newLayout += orientationToNeighbor;
+            let oldLayout = indexToBitOrientationMap.get(neighbor.index - 1);
 
             let neighborsX = 0
             let neighborsY = 0
 
             neighborsX = neighbor.x - 1
             neighborsY = neighbor.y
-            if (neighborsX >= 0 && ((oldLayout & 0b1000) == 0)) {
+            if (neighborsX >= 0 && ((oldLayout & Constants.orientationToBitmask.get(Orientation.LEFT)) == 0)) {
                 let neighborsNeighbor = this.terrainLayer.getTileAt(neighborsX, neighborsY);
-                if (this.terrainData[this.convertTileTo1DCoords(neighborsNeighbor)].name == Roads.name && neighborsNeighbor != currentTile) {
-                    oldLayout |= 0b1000
+                if (namesToCheck.includes(this.terrainData[this.convertTileTo1DCoords(neighborsNeighbor)].name)) {
+                    oldLayout |= Constants.orientationToBitmask.get(Orientation.LEFT)
                 }
             }
 
             neighborsX = neighbor.x + 1
             neighborsY = neighbor.y
-            if (neighborsX < this.map.width && ((oldLayout & 0b0010) == 0)) {
+            if (neighborsX < this.map.width && ((oldLayout & Constants.orientationToBitmask.get(Orientation.RIGHT)) == 0)) {
                 let neighborsNeighbor = this.terrainLayer.getTileAt(neighborsX, neighborsY);
-                if (this.terrainData[this.convertTileTo1DCoords(neighborsNeighbor)].name == Roads.name && neighborsNeighbor != currentTile) {
-                    oldLayout |= 0b0010
+                if (namesToCheck.includes(this.terrainData[this.convertTileTo1DCoords(neighborsNeighbor)].name)) {
+                    oldLayout |= Constants.orientationToBitmask.get(Orientation.RIGHT)
                 }
             }
 
             neighborsX = neighbor.x
             neighborsY = neighbor.y - 1
-            if (neighborsY >= 0 && ((oldLayout & 0b0100) == 0)) {
+            if (neighborsY >= 0 && ((oldLayout & Constants.orientationToBitmask.get(Orientation.TOP)) == 0)) {
                 let neighborsNeighbor = this.terrainLayer.getTileAt(neighborsX, neighborsY);
-                if (this.terrainData[this.convertTileTo1DCoords(neighborsNeighbor)].name == Roads.name && neighborsNeighbor != currentTile) {
-                    oldLayout |= 0b0100
+                if (namesToCheck.includes(this.terrainData[this.convertTileTo1DCoords(neighborsNeighbor)].name)) {
+                    oldLayout |= Constants.orientationToBitmask.get(Orientation.TOP)
                 }
             }
 
             neighborsX = neighbor.x
             neighborsY = neighbor.y + 1
-            if (neighborsY < this.map.height && ((oldLayout & 0b0001) == 0)) {
+            if (neighborsY < this.map.height && ((oldLayout & Constants.orientationToBitmask.get(Orientation.BOTTOM)) == 0)) {
                 let neighborsNeighbor = this.terrainLayer.getTileAt(neighborsX, neighborsY);
-                if (this.terrainData[this.convertTileTo1DCoords(neighborsNeighbor)].name == Roads.name && neighborsNeighbor != currentTile) {
-                    oldLayout |= 0b0001
+                if (namesToCheck.includes(this.terrainData[this.convertTileTo1DCoords(neighborsNeighbor)].name)) {
+                    oldLayout |= Constants.orientationToBitmask.get(Orientation.BOTTOM)
                 }
             }
 
-            oldLayout |= orientationToCurrent
-
-            this.map.putTileAt(this.getOffsetIndex(Constants.bitOrientationToIndexForRoads.get(oldLayout), this.terrainTiles), newX, newY, false, this.terrainLayer);
+            this.map.putTileAt(this.getOffsetIndex(bitOrientationToIndexMap.get(oldLayout), this.terrainTiles), newX, newY, false, this.terrainLayer);
         }
-        return newRoadLayout;
+        return newLayout;
     }
 
     private getNeighbors(sourceTile: Phaser.Tilemaps.Tile, layer: Phaser.Tilemaps.TilemapLayer): Array<Phaser.Tilemaps.Tile> {
