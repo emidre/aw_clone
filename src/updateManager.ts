@@ -2,7 +2,7 @@ import ConsoleManager from "./console_manager";
 import Constants from "./constants";
 import GameManager from "./gameManager"
 import PathTile from "./models/pathTile";
-import TileManager from "./tile_manager";
+import TileManager from "./tileManager";
 
 export default class UpdateManager {
     private static _instance: UpdateManager;
@@ -129,8 +129,12 @@ export default class UpdateManager {
                 }
 
                 const unit = TileManager.Instance.unitData[TileManager.Instance.convertTileTo1DCoords(currentTile)]
-                if (TileManager.Instance.movementTiles.find((tile) => tile.vec.x == currentTile.x && tile.vec.y == currentTile.y) && !unit) {
-                    // move
+                if (TileManager.Instance.movementTiles.find((tile) => tile.vec.x == currentTile.x && tile.vec.y == currentTile.y)) {
+                    if (unit) {
+                        // attack if enemy
+                    } else {
+                        // move
+                    }
                 } else {
                     if (!TileManager.Instance.lastCreatedTile || TileManager.Instance.lastCreatedTile != currentTile) {
                         TileManager.Instance.lastCreatedTile = currentTile

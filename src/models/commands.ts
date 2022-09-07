@@ -1,6 +1,7 @@
 export default class Commands {
     static mountain = "mountain"
     static plains = "plains"
+    static roads = "roads"
     static woods = "woods"
     static base = "base"
     static hq = "hq"

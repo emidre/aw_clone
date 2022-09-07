@@ -6,6 +6,10 @@
                 TileManager.Instance.currentBrush = Plains;
                 break;
             }
+            case Commands.roads: {
+                TileManager.Instance.currentBrush = Roads;
+                break;
+            }
             case Commands.woods: {
                 TileManager.Instance.currentBrush = Woods;
                 break;

@@ -19,6 +19,9 @@ const terrain = {
         sizeY: 2,
         indices: [23, 49],
         decorations: [true, false]
+    },
+    "roads": {
+        indices: [] // handled extra
     }
 }
 

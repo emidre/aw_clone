@@ -1,4 +1,4 @@
-terrainDir = File.join(__dir__, '../models/terrainObjects/') 
+terrainDir = File.join(__dir__, '../models/playerObjects/terrainObjects/') 
 buildingDir = File.join(__dir__, '../models/playerObjects/buildingObjects/')
 unitDir = File.join(__dir__, '../models/playerObjects/unitObjects/')
 

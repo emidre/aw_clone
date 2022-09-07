@@ -6,10 +6,16 @@ import { Orientation } from "./models/orientation";
 import PathTile from "./models/pathTile";
 import BuildingObject from "./models/playerObjects/buildingObject";
 import { UnitObject } from "./models/playerObjects/unitObject";
-import TerrainObject from "./models/terrainObject";
-import Plains from "./models/terrainObjects/plains";
+import TerrainObject from "./models/playerObjects/terrainObject";
+import Plains from "./models/playerObjects/terrainObjects/Plains";
 import Vector2 from "./models/vector2";
 import UpdateManager from "./updateManager";
+import Roads from "./models/playerObjects/terrainObjects/Roads";
+
+type AnimatedTiles = Array<{
+    frames: Array<number>;
+    tiles: Array<Phaser.Tilemaps.Tile>;
+}>;
 
 export default class TileManager {
     private static _instance: TileManager;
@@ -21,10 +27,7 @@ export default class TileManager {
         return this._instance || (this._instance = new this());
     }
 
-    private _animatedTiles: Array<{
-        frames: Array<number>;
-        tiles: Array<Phaser.Tilemaps.Tile>;
-    }> = [];
+    private _animatedTiles: AnimatedTiles = [];
     private _attackTiles: Array<{ x: number; y: number; }> = [];
     private _currentBrush: typeof GameObject = null;
     private _lastCreatedTile: Phaser.Tilemaps.Tile;
@@ -98,22 +101,18 @@ export default class TileManager {
 
         const tileSetEncoding: TileSetEncoding = tileSetEncodings[tileSetName]
 
-        if (objectClass.prototype instanceof TerrainObject) {
+        if (objectClass.prototype instanceof TerrainObject && !(objectClass.prototype instanceof BuildingObject)) {
             const tileEncoding: TileEncoding = tileSetEncoding.get(objectClass.name.toLowerCase())
 
             const sizeX = tileEncoding.sizeX ?? 1
             const sizeY = tileEncoding.sizeY ?? 1
             const decorations = tileEncoding.decorations ?? tileEncoding.indices.map((_) => false)
 
-            //if (tileSetEncoding.get(this.terrainData[this.convertTileTo1DCoords(currentTile)].name.toLowerCase()).sizeY == 2) {
             if (currentTile.y - 1 >= 0) {
                 this.map.putTileAt(this.getOffsetIndex(1052, this.terrainTiles), currentTile.x, currentTile.y - 1, false, this.decorationLayer)
             }
+            this.clearAnimationsForLayer(currentTile, this.terrainLayer)
             this.terrainData[this.convertTileTo1DCoords(currentTile)] = objectClass as any
-            let existingAnimationIndex = this.animatedTiles.findIndex((animatedTile) => animatedTile.tiles[0].x == currentTile.x && animatedTile.tiles[0].y == currentTile.y)
-            if (existingAnimationIndex != -1) {
-                this.animatedTiles.splice(existingAnimationIndex, 1)
-            }
 
             // Bottom right is assumed to be the origin point of the sprite
             tileEncoding.indices.forEach((tileIndex, countingIndex) => {
@@ -123,6 +122,38 @@ export default class TileManager {
                 const layer = decorations[countingIndex] == true ? this.decorationLayer : this.terrainLayer
                 this.map.putTileAt(this.getOffsetIndex(tileIndex, this.terrainTiles), currentTile.x - matrixPositionX, currentTile.y - matrixPositionY, false, layer)
             })
+
+            // left up right down
+            if (objectClass.name == Roads.name) {
+                let roadLayout = 0b0000
+                let newX = 0
+                let newY = 0
+
+                newX = currentTile.x - 1
+                newY = currentTile.y
+                if (newX >= 0) {
+                    roadLayout = this.updateRoadAndLayout(currentTile, newX, newY, roadLayout, 2, 3, 0b1000, 0b0010);
+                }
+
+                newX = currentTile.x + 1
+                newY = currentTile.y
+                if (newX < this.map.width) {
+                    roadLayout = this.updateRoadAndLayout(currentTile, newX, newY, roadLayout, 0, 3, 0b0010, 0b1000);
+                }
+                newX = currentTile.x 
+                newY = currentTile.y - 1
+                if (newY >= 0) {
+                    roadLayout = this.updateRoadAndLayout(currentTile, newX, newY, roadLayout, 3, 3, 0b0100, 0b0001);
+                }
+
+                newX = currentTile.x
+                newY = currentTile.y + 1
+                if (newY < this.map.height) {
+                    roadLayout = this.updateRoadAndLayout(currentTile, newX, newY, roadLayout, 1, 3, 0b0001, 0b0100);
+                }
+                
+                this.map.putTileAt(this.getOffsetIndex(Constants.bitOrientationToIndexForRoads.get(roadLayout), this.terrainTiles), currentTile.x, currentTile.y, false, this.terrainLayer)
+            }
         } else if (objectClass.prototype instanceof UnitObject) {
             let modifier = ""
 
@@ -138,11 +169,8 @@ export default class TileManager {
                 }
             }
 
+            this.clearAnimationsForLayer(currentTile, this.unitLayer)
             this.unitData[this.convertTileTo1DCoords(currentTile)] = objectClass as any
-            let existingAnimationIndex = this.animatedTiles.findIndex((animatedTile) => animatedTile.tiles[0].x == currentTile.x && animatedTile.tiles[0].y == currentTile.y)
-            if (existingAnimationIndex != -1) {
-                this.animatedTiles.splice(existingAnimationIndex, 1)
-            }
 
             const tileEncoding: TileEncoding = tileSetEncoding.get(objectClass.name.toLowerCase() + modifier + color + "_active")
 
@@ -189,11 +217,8 @@ export default class TileManager {
             if (currentTile.y - 1) {
                 this.map.putTileAt(this.getOffsetIndex(1052, this.terrainTiles), currentTile.x, currentTile.y - 1, false, this.decorationLayer)
             }
+            this.clearAnimationsForLayer(currentTile, this.terrainLayer)
             this.terrainData[this.convertTileTo1DCoords(currentTile)] = objectClass as any
-            let existingAnimationIndex = this.animatedTiles.findIndex((animatedTile) => animatedTile.tiles[0].x == currentTile.x && animatedTile.tiles[0].y == currentTile.y)
-            if (existingAnimationIndex != -1) {
-                this.animatedTiles.splice(existingAnimationIndex, 1)
-            }
 
             // Bottom right is assumed to be the origin point of the sprite
             tileEncoding.indices.forEach((tileIndex, countingIndex) => {
@@ -242,7 +267,7 @@ export default class TileManager {
             const backwardsOrientation = Constants.orientationToBitmask.get(this.findOrientation(pred, curr)) << 4
             const forwardOrientation = Constants.orientationToBitmask.get(this.findOrientation(succ, curr))
             const orientation = backwardsOrientation + forwardOrientation
-            const index = Constants.bitOrientationToIndex.get(orientation)
+            const index = Constants.bitOrientationToIndexForMarker.get(orientation)
 
             this.paintTile(curr, this.getOffsetIndex(index, this.unitTiles), this.pathLayer)
         }
@@ -316,6 +341,77 @@ export default class TileManager {
     // Private
     //
 
+    // left up right down
+    private updateRoadAndLayout(currentTile: Phaser.Tilemaps.Tile, newX: number, newY: number, roadLayout: number, shiftLeft: number, shiftRight: number, orientationToNeighbor: number, orientationToCurrent: number) {
+        let neighbor = this.terrainLayer.getTileAt(newX, newY);
+        let newRoadLayout = roadLayout;
+        if (this.terrainData[this.convertTileTo1DCoords(neighbor)].name == Roads.name) {
+            newRoadLayout += orientationToNeighbor;
+            let oldLayout = Constants.indexToBitOrientationForRoads.get(neighbor.index - 1);
+
+            let neighborsX = 0
+            let neighborsY = 0
+
+            neighborsX = neighbor.x - 1
+            neighborsY = neighbor.y
+            if (neighborsX >= 0 && ((oldLayout & 0b1000) == 0)) {
+                let neighborsNeighbor = this.terrainLayer.getTileAt(neighborsX, neighborsY);
+                if (this.terrainData[this.convertTileTo1DCoords(neighborsNeighbor)].name == Roads.name && neighborsNeighbor != currentTile) {
+                    oldLayout |= 0b1000
+                }
+            }
+
+            neighborsX = neighbor.x + 1
+            neighborsY = neighbor.y
+            if (neighborsX < this.map.width && ((oldLayout & 0b0010) == 0)) {
+                let neighborsNeighbor = this.terrainLayer.getTileAt(neighborsX, neighborsY);
+                if (this.terrainData[this.convertTileTo1DCoords(neighborsNeighbor)].name == Roads.name && neighborsNeighbor != currentTile) {
+                    oldLayout |= 0b0010
+                }
+            }
+
+            neighborsX = neighbor.x
+            neighborsY = neighbor.y - 1
+            if (neighborsY >= 0 && ((oldLayout & 0b0100) == 0)) {
+                let neighborsNeighbor = this.terrainLayer.getTileAt(neighborsX, neighborsY);
+                if (this.terrainData[this.convertTileTo1DCoords(neighborsNeighbor)].name == Roads.name && neighborsNeighbor != currentTile) {
+                    oldLayout |= 0b0100
+                }
+            }
+
+            neighborsX = neighbor.x
+            neighborsY = neighbor.y + 1
+            if (neighborsY < this.map.height && ((oldLayout & 0b0001) == 0)) {
+                let neighborsNeighbor = this.terrainLayer.getTileAt(neighborsX, neighborsY);
+                if (this.terrainData[this.convertTileTo1DCoords(neighborsNeighbor)].name == Roads.name && neighborsNeighbor != currentTile) {
+                    oldLayout |= 0b0001
+                }
+            }
+
+            oldLayout |= orientationToCurrent
+
+            this.map.putTileAt(this.getOffsetIndex(Constants.bitOrientationToIndexForRoads.get(oldLayout), this.terrainTiles), newX, newY, false, this.terrainLayer);
+        }
+        return newRoadLayout;
+    }
+
+    private getNeighbors(sourceTile: Phaser.Tilemaps.Tile, layer: Phaser.Tilemaps.TilemapLayer): Array<Phaser.Tilemaps.Tile> {
+        let neighbors : Array<Phaser.Tilemaps.Tile> = []
+
+        sourceTile.x - 1 >= 0 ? neighbors.push(layer.getTileAt(sourceTile.x - 1, sourceTile.y)) : null
+        sourceTile.x + 1 >= 0 ? neighbors.push(layer.getTileAt(sourceTile.x + 1, sourceTile.y)) : null
+        sourceTile.y - 1 >= 0 ? neighbors.push(layer.getTileAt(sourceTile.x, sourceTile.y - 1)) : null
+        sourceTile.y + 1 >= 0 ? neighbors.push(layer.getTileAt(sourceTile.x, sourceTile.y + 1)) : null
+
+        return neighbors
+    }
+
+    private clearAnimationsForLayer(currentTile: Phaser.Tilemaps.Tile, layer: Phaser.Tilemaps.TilemapLayer) {
+        this.animatedTiles = this.animatedTiles.filter(animatedTile => {
+            return !(animatedTile.tiles[0].x == currentTile.x && animatedTile.tiles[0].y == currentTile.y && animatedTile.tiles[0].layer.tilemapLayer == layer)
+        })
+    }
+
     private paintTile(tile: PathTile, index, layer) {
         layer.putTileAt(index, tile.vec.x, tile.vec.y)
     }
@@ -362,6 +458,10 @@ export default class TileManager {
         } else {
             return null
         }
+    }
+
+    private dec2bin(dec) {
+        return (dec >>> 0).toString(2);
     }
 
     //

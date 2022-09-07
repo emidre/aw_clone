@@ -2,7 +2,11 @@ import UpdateManager from "./updateManager"
 import Constants from "./constants"
 import { setGameObjectDefaultInstances } from "./setGameObjectDefaultInstances"
 import ConsoleManager from "./console_manager"
-import TileManager from "./tile_manager"
+import TileManager from "./tileManager"
+import TerrainObject from "./models/playerObjects/terrainObject"
+import { UnitObject } from "./models/playerObjects/unitObject"
+import { INVALID_MOVEMENT, MovementType } from "./models/gameObject"
+import BuildingObject from "./models/playerObjects/buildingObject"
 
 export default class GameManager extends Phaser.Scene {
     private static _instance: GameManager;
@@ -86,10 +90,36 @@ export default class GameManager extends Phaser.Scene {
     }
 
     setStatusText = (currentTile: Phaser.Tilemaps.Tile) => {
+        let currentTerrain : TerrainObject | null = null
+        let currentUnit : UnitObject | null = null
+        let terrainInfo = ""
+        let unitInfo = ""
+
+        if (currentTile) {
+            currentTerrain = Constants.gameObjectDefaultInstances.get(TileManager.Instance.terrainData[TileManager.Instance.convertTileTo1DCoords(currentTile)]) as TerrainObject
+            if (currentTerrain) {
+                terrainInfo += ` Player: ${currentTerrain.player}\n\n`
+                let movementCost = "";
+                currentTerrain.movementCost.forEach((value, key) => {
+                    movementCost += `              ${MovementType[key]}: ${value == INVALID_MOVEMENT ? "x" : value}\n`
+                });
+                terrainInfo += `             Movement Cost:\n${movementCost}\n`
+                terrainInfo += `             Defensive Stars: ${currentTerrain.defensiveStars}\n`
+            }
+
+            currentUnit = Constants.gameObjectDefaultInstances.get(TileManager.Instance.unitData[TileManager.Instance.convertTileTo1DCoords(currentTile)]) as UnitObject
+            if (currentUnit) {
+                unitInfo += `Movement: ${currentUnit.movement}\n`
+                unitInfo += `            Movement Type: ${MovementType[currentUnit.movementType]}\n`
+            }
+        }
+        
         this.statusText.setText(
             `
-            Terrain: ${currentTile ? TileManager.Instance.terrainData[TileManager.Instance.convertTileTo1DCoords(currentTile)]?.name : "OOB"}\n
-            Unit: ${currentTile ? TileManager.Instance.unitData[TileManager.Instance.convertTileTo1DCoords(currentTile)]?.name : "OOB"}\n
+            Terrain: ${currentTerrain?.objectName ?? "OOB"} (${currentTile?.index - 1 ?? ""})\n
+            ${terrainInfo}
+            Unit: ${currentUnit?.objectName ?? "OOB"}
+            ${unitInfo}\n
             `
         )
     }

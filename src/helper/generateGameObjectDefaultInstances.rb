@@ -1,4 +1,4 @@
-terrainDir = File.join(__dir__, '../models/terrainObjects/') 
+terrainDir = File.join(__dir__, '../models/playerObjects/terrainObjects/') 
 buildingDir = File.join(__dir__, '../models/playerObjects/buildingObjects/')
 unitDir = File.join(__dir__, '../models/playerObjects/unitObjects/')
 
@@ -24,7 +24,7 @@ end
 open(File.join(__dir__, '../setGameObjectDefaultInstances.ts') , 'w') do |f|
     f.puts "import Constants from \"./constants\"\n"
     terrain.map { |name|
-        f.puts "import #{name} from \"./models/terrainObjects/#{name}\"\n"
+        f.puts "import #{name} from \"./models/playerObjects/terrainObjects/#{name}\"\n"
     }
     buildings.map { |name|
         f.puts "import #{name} from \"./models/playerObjects/buildingObjects/#{name}\"\n"

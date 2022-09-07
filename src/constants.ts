@@ -19,7 +19,7 @@ export default abstract class Constants {
     static readonly gameWidth = 1280
     static readonly gameHeight = 720
     static readonly tileMapOffsetX = (Constants.gameWidth + Constants.safeDistance)
-    static readonly bitOrientationToIndex: Map<number, number> = new Map([
+    static readonly bitOrientationToIndexForMarker: Map<number, number> = new Map([
         [0b00011000, 0],
         [0b01000001, 36],
         [0b01000010, 72],
@@ -40,6 +40,38 @@ export default abstract class Constants {
         [0b00100100, 41],
         [0b00100001, 77],
         [0b00010110, 113],
+    ])
+    // left up right down
+    static readonly bitOrientationToIndexForRoads: Map<number, number> = new Map([
+        [0b0011, 2],
+        [0b1011, 3],
+        [0b1001, 4],
+        [0b0111, 28],
+        [0b1111, 29],
+        [0b1101, 30],
+        [0b0110, 54],
+        [0b1110, 55],
+        [0b1100, 56],
+        [0b0000, 80],
+        [0b1000, 80],
+        [0b0010, 80],
+        [0b1010, 80],
+        [0b0100, 81],
+        [0b0001, 81],
+        [0b0101, 81],
+    ])
+    static readonly indexToBitOrientationForRoads: Map<number, number> = new Map([
+        [2, 0b0011],
+        [3, 0b1011],
+        [4, 0b1001],
+        [28, 0b0111],
+        [29, 0b1111],
+        [30, 0b1101],
+        [54, 0b0110],
+        [55, 0b1110],
+        [56, 0b1100],
+        [80, 0b0000],
+        [81, 0b0000],
     ])
     static readonly orientationToBitmask: Map<Orientation, number> = new Map([
         [Orientation.TOP, 0b0010],

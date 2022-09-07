@@ -1,15 +1,16 @@
 import Constants from "./constants";
 import Commands from "./models/commands";
 import Base from "./models/playerObjects/buildingObjects/Base";
-import HQ from "./models/playerObjects/buildingObjects/hq";
-import Infantry from "./models/playerObjects/unitObjects/infantry";
-import MegaTank from "./models/playerObjects/unitObjects/megatank";
-import Recon from "./models/playerObjects/unitObjects/recon";
-import Mountain from "./models/terrainObjects/mountain";
-import Plains from "./models/terrainObjects/plains";
-import Woods from "./models/terrainObjects/woods";
-import TileManager from "./tile_manager";
+import HQ from "./models/playerObjects/buildingObjects/HQ";
+import Infantry from "./models/playerObjects/unitObjects/Infantry";
+import MegaTank from "./models/playerObjects/unitObjects/MegaTank";
+import Recon from "./models/playerObjects/unitObjects/Recon";
+import Mountain from "./models/playerObjects/terrainObjects/Mountain";
+import Plains from "./models/playerObjects/terrainObjects/Plains";
+import Woods from "./models/playerObjects/terrainObjects/Woods";
+import TileManager from "./tileManager";
 import UpdateManager from "./updateManager";
+import Roads from "./models/playerObjects/terrainObjects/Roads";
 
 export default class ConsoleManager {
     private static _instance: ConsoleManager;
@@ -50,6 +51,10 @@ export default class ConsoleManager {
             }
             case Commands.plains: {
                 TileManager.Instance.currentBrush = Plains;
+                break;
+            }
+            case Commands.roads: {
+                TileManager.Instance.currentBrush = Roads;
                 break;
             }
             case Commands.woods: {
