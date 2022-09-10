@@ -1,11 +1,11 @@
 import { INVALID_MOVEMENT, MovementType } from "../../gameObject";
 import TerrainObject from "../terrainObject";
 
-export default class Roads extends TerrainObject {
+export default class Shoal extends TerrainObject {
     constructor() {
         super()
 
-        this.objectName = "Roads"
+        this.objectName = "Shoal"
 
         this.movementCost = new Map<MovementType, number>()
         this.movementCost.set(MovementType.Infantry, 1)

@@ -28,6 +28,19 @@ const terrain = {
     },
     "pipeseam": {
         indices: [] // handled extra
+    },
+    "sea": {
+        indices: [] // handled extra
+    },
+    "reef": {
+        indices: [193],
+        additionalFrames: [[297, 401, 505]]
+    },
+    "shoal": {
+        indices: [] // handled extra
+    },
+    "river": {
+        indices: [] // handled extra
     }
 }
 

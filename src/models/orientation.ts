@@ -3,5 +3,9 @@ export enum Orientation {
     BOTTOM,
     LEFT,
     RIGHT,
+    TOPLEFT,
+    TOPRIGHT,
+    BOTTOMRIGHT,
+    BOTTOMLEFT,
     null
 }

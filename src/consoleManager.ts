@@ -13,6 +13,10 @@ import UpdateManager from "./updateManager";
 import Roads from "./models/playerObjects/terrainObjects/Roads";
 import Pipe from "./models/playerObjects/terrainObjects/Pipe";
 import PipeSeam from "./models/playerObjects/terrainObjects/PipeSeam";
+import Reef from "./models/playerObjects/terrainObjects/Reef";
+import River from "./models/playerObjects/terrainObjects/River";
+import Sea from "./models/playerObjects/terrainObjects/Sea";
+import Shoal from "./models/playerObjects/terrainObjects/Shoal";
 
 export default class ConsoleManager {
     private static _instance: ConsoleManager;
@@ -63,8 +67,24 @@ export default class ConsoleManager {
                 TileManager.Instance.currentBrush = Plains;
                 break;
             }
+            case Commands.reef: {
+                TileManager.Instance.currentBrush = Reef;
+                break;
+            }
+            case Commands.river: {
+                TileManager.Instance.currentBrush = River;
+                break;
+            }
             case Commands.roads: {
                 TileManager.Instance.currentBrush = Roads;
+                break;
+            }
+            case Commands.sea: {
+                TileManager.Instance.currentBrush = Sea;
+                break;
+            }
+            case Commands.shoal: {
+                TileManager.Instance.currentBrush = Shoal;
                 break;
             }
             case Commands.woods: {

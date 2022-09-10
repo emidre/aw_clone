@@ -49,23 +49,23 @@ export default abstract class Constants {
         [Orientation.null, 0b0001],
     ])
     // Roads
-    static readonly bitOrientationToIndexForRoads: Map<number, number> = new Map([
-        [0b0011, 2],
-        [0b1011, 3],
-        [0b1001, 4],
-        [0b0111, 28],
-        [0b1111, 29],
-        [0b1101, 30],
-        [0b0110, 54],
-        [0b1110, 55],
-        [0b1100, 56],
-        [0b0000, 80],
-        [0b1000, 80],
-        [0b0010, 80],
-        [0b1010, 80],
-        [0b0100, 81],
-        [0b0001, 81],
-        [0b0101, 81],
+    static readonly bitOrientationToIndexForRoads: Map<number, number[]> = new Map([
+        [0b0011, [2, 0]],
+        [0b1011, [3, 0]],
+        [0b1001, [4, 0]],
+        [0b0111, [28, 0]],
+        [0b1111, [29, 0]],
+        [0b1101, [30, 0]],
+        [0b0110, [54, 0]],
+        [0b1110, [55, 0]],
+        [0b1100, [56, 0]],
+        [0b0000, [80, 0]],
+        [0b1000, [80, 0]],
+        [0b0010, [80, 0]],
+        [0b1010, [80, 0]],
+        [0b0100, [81, 0]],
+        [0b0001, [81, 0]],
+        [0b0101, [81, 0]],
     ])
     static readonly indexToBitOrientationForRoads: Map<number, number> = new Map([
         [2, 0b0011],
@@ -81,24 +81,23 @@ export default abstract class Constants {
         [81, 0b0000],
     ])
     // Pipes
-    static readonly bitOrientationToIndexForPipes: Map<number, number> = new Map([
-        [0b0011, 34],
-        [0b1001, 35],
-        [0b0001, 36],
-        [0b0000, 37],
-        [0b1010, 37],
-        [0b0101, 38],
-        [0b0110, 60],
-        [0b1100, 61],
-        [0b0100, 62],
-        [0b0010, 86],
-        [0b1000, 87],
-
-        [0b1111, 38],
-        [0b0111, 38],
-        [0b1101, 38],
-        [0b1011, 37],
-        [0b1110, 37],
+    static readonly bitOrientationToIndexForPipes: Map<number, number[]> = new Map([
+        [0b0011, [34, 0]],
+        [0b1001, [35, 0]],
+        [0b0001, [36, 0]],
+        [0b0000, [37, 0]],
+        [0b1010, [37, 0]],
+        [0b0101, [38, 0]],
+        [0b0110, [60, 0]],
+        [0b1100, [61, 0]],
+        [0b0100, [62, 0]],
+        [0b0010, [86, 0]],
+        [0b1000, [87, 0]],
+        [0b1111, [38, 0]],
+        [0b0111, [38, 0]],
+        [0b1101, [38, 0]],
+        [0b1011, [37, 0]],
+        [0b1110, [37, 0]],
     ])
     static readonly indexToBitOrientationForPipes: Map<number, number> = new Map([
         [34, 0b0011],
@@ -112,12 +111,100 @@ export default abstract class Constants {
         [86, 0b0010],
         [87, 0b1000],
     ])
-    static readonly orientationToBitmask: Map<Orientation, number> = new Map([
+    static readonly pipesNextAnimationFrame: Map<number, number> = new Map([
+        [37, 41],
+        [60, 39],
+        [61, 40],
+        [63, 67],
+        [86, 65],
+        [87, 66],
+    ])
+    // Sea
+    // left top right bottom
+    // Idea: Do required land tiles, and optional land tiles. That you you keep the number of entries in the map small.
+    // In the Code, find all neighbors which are land, then set the optional bits to zero and find the key in the map.
+    // 0: Required, 1: Optional
+    static readonly bitOrientationToIndexForSea: Map<number, number[]> = new Map([
+        // Row 1
+        [0b000_0_011_1, [104, 0b101_0_100_0]],
+        [0b010_0_010_1, [105, 0b001_0_100_0]],
+        [0b010_0_000_1, [106, 0b001_0_100_0]],
+        [0b000_0_000_1, [107, 0b101_0_101_0]],
+        [0b111_1_110_1, [108, 0b000_0_000_0]],
+        [0b011_1_111_1, [109, 0b000_0_000_0]],
+        [0b000_1_010_1, [110, 0b101_0_100_0]],
+        [0b010_1_000_1, [111, 0b001_0_101_0]],
+        [0b001_0_100_0, [112, 0b000_0_000_0]],
+        [0b000_0_101_0, [113, 0b000_0_000_0]],
+        [0b000_0_100_0, [114, 0b000_0_000_0]],
+        [0b001_0_000_0, [115, 0b000_0_000_0]],
+
+        // Row 2
+        /*
+        [0b000_0_000_0, [130, 0b000_0_000_0]],
+        [0b000_0_000_0, [131, 0b000_0_000_0]],
+        [0b000_0_000_0, [132, 0b000_0_000_0]],
+        [0b000_0_000_0, [133, 0b000_0_000_0]],
+        [0b000_0_000_0, [134, 0b000_0_000_0]],
+        [0b000_0_000_0, [135, 0b000_0_000_0]],
+        [0b000_0_000_0, [136, 0b000_0_000_0]],
+        [0b000_0_000_0, [137, 0b000_0_000_0]],
+        [0b000_0_000_0, [138, 0b000_0_000_0]],
+        [0b000_0_000_0, [139, 0b000_0_000_0]],
+        [0b000_0_000_0, [140, 0b000_0_000_0]],
+        [0b000_0_000_0, [141, 0b000_0_000_0]],
+
+        // Row 3
+        [0b000_0_000_0, [156, 0b000_0_000_0]],
+        [0b000_0_000_0, [157, 0b000_0_000_0]],
+        [0b000_0_000_0, [158, 0b000_0_000_0]],
+        [0b000_0_000_0, [159, 0b000_0_000_0]],
+        [0b000_0_000_0, [160, 0b000_0_000_0]],
+        [0b000_0_000_0, [161, 0b000_0_000_0]],
+        [0b000_0_000_0, [162, 0b000_0_000_0]],
+        [0b000_0_000_0, [163, 0b000_0_000_0]],
+        [0b000_0_000_0, [164, 0b000_0_000_0]],
+        [0b000_0_000_0, [165, 0b000_0_000_0]],
+        [0b000_0_000_0, [166, 0b000_0_000_0]],
+        [0b000_0_000_0, [167, 0b000_0_000_0]],
+        */
+
+        // Row 4
+        [0b000_0_010_0, [182, 0b101_0_101_0]],
+        [0b010_0_010_0, [183, 0b101_0_101_0]],
+        [0b010_0_000_0, [184, 0b101_0_101_0]],
+        [0b000_0_000_0, [185, 0b101_0_101_0]], //
+        /*
+        [0b000_0_000_0, [186, 0b000_0_000_0]],
+        [0b000_0_000_0, [187, 0b000_0_000_0]],
+        [0b000_0_000_0, [188, 0b000_0_000_0]],
+        [0b000_0_000_0, [189, 0b000_0_000_0]],
+        [0b000_0_000_0, [190, 0b000_0_000_0]],
+        [0b000_0_000_0, [191, 0b000_0_000_0]],
+        [0b000_0_000_0, [192, 0b000_0_000_0]],
+        */
+    ])
+    static indexToBitOrientationForSea: Map<number, number> = new Map<number, number>()
+    static readonly orientationToBitmaskDirect: Map<Orientation, number> = new Map([
         [Orientation.LEFT, 0b1000],
         [Orientation.TOP, 0b0100],
         [Orientation.RIGHT, 0b0010],
         [Orientation.BOTTOM, 0b0001],
     ])
+    static readonly orientationToBitmaskAll: Map<Orientation, number> = new Map([
+        [Orientation.BOTTOMLEFT, 0b100_0_000_0],
+        [Orientation.LEFT, 0b010_0_000_0],
+        [Orientation.TOPLEFT, 0b001_0_000_0],
+        [Orientation.TOP, 0b000_1_000_0],
+        [Orientation.TOPRIGHT, 0b000_0_100_0],
+        [Orientation.RIGHT, 0b000_0_010_0],
+        [Orientation.BOTTOMRIGHT, 0b000_0_001_0],
+        [Orientation.BOTTOM, 0b000_0_000_1],
+    ])
     static gameObjectDefaultInstances: Map<typeof GameObject, GameObject> = new Map<typeof GameObject, GameObject>()
     static EMPTY_TERRAIN = 1637
 }
+
+Constants.bitOrientationToIndexForSea.forEach((v, k) => {
+    Constants.indexToBitOrientationForSea.set(v[0], k)
+})

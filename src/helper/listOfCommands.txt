@@ -14,8 +14,24 @@
                 TileManager.Instance.currentBrush = Plains;
                 break;
             }
+            case Commands.reef: {
+                TileManager.Instance.currentBrush = Reef;
+                break;
+            }
+            case Commands.river: {
+                TileManager.Instance.currentBrush = River;
+                break;
+            }
             case Commands.roads: {
                 TileManager.Instance.currentBrush = Roads;
+                break;
+            }
+            case Commands.sea: {
+                TileManager.Instance.currentBrush = Sea;
+                break;
+            }
+            case Commands.shoal: {
+                TileManager.Instance.currentBrush = Shoal;
                 break;
             }
             case Commands.woods: {
