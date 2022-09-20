@@ -2,6 +2,9 @@ import ConsoleManager from "./consoleManager";
 import Constants from "./constants";
 import GameManager from "./gameManager"
 import PathTile from "./models/pathTile";
+import Plains from "./models/playerObjects/terrainObjects/Plains";
+import Sea from "./models/playerObjects/terrainObjects/Sea";
+import Shoal from "./models/playerObjects/terrainObjects/Shoal";
 import TileManager from "./tileManager";
 
 export default class UpdateManager {
@@ -27,6 +30,7 @@ export default class UpdateManager {
     private keySpace: Phaser.Input.Keyboard.Key
     private selectedUnitPosition: number = null
     private unitCurrentFrame: number = 0
+    private seaCurrentFrame: number = 0
     private unitNextFrame: number = 0
     private cursors: Phaser.Types.Input.Keyboard.CursorKeys
 
@@ -99,17 +103,29 @@ export default class UpdateManager {
         this.unitNextFrame -= globalElapsedTime * Constants.unitFrameRate
 
         if (this.unitNextFrame < 0) {
+            this.seaCurrentFrame = this.seaCurrentFrame + 1
             this.unitCurrentFrame = this.unitCurrentFrame + 1
 
             if (this.unitCurrentFrame == 3) {
                 this.unitCurrentFrame = 0
             }
 
+            if (this.seaCurrentFrame == 12) {
+                this.seaCurrentFrame = 0
+            }
+
             TileManager.Instance.animatedTiles.forEach(
                 (animatedTile) => {
                     animatedTile.tiles.forEach((tile) => {
-                        let tileId = animatedTile.frames[this.unitCurrentFrame];
-                        tile.index = tileId
+                        let terrainData = TileManager.Instance.terrainData[TileManager.Instance.convertTileTo1DCoords(tile)]
+                        
+                        if (TileManager.Instance.getSeaTileNames().includes(terrainData.name)) {
+                            let tileId = animatedTile.frames[this.seaCurrentFrame];
+                            tile.index = tileId
+                        } else {
+                            let tileId = animatedTile.frames[this.unitCurrentFrame];
+                            tile.index = tileId
+                        }
                     });
                 }
             );

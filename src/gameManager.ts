@@ -47,6 +47,8 @@ export default class GameManager extends Phaser.Scene {
         TileManager.Instance.map = this.add.tilemap('map')
         TileManager.Instance.map.width = 20
         TileManager.Instance.map.height = 20
+        
+        this.scene
 
         TileManager.Instance.initializeTileMaps()
         TileManager.Instance.initializeTileData()
